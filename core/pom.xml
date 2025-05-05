@@ -11,6 +11,7 @@
 
     <packaging>pom</packaging>
     <artifactId>core</artifactId>
+
     <modules>
         <module>main-service</module>
     </modules>

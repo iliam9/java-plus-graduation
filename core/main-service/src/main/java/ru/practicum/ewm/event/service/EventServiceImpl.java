@@ -211,6 +211,8 @@ public class EventServiceImpl implements EventService {
                 ip,
                 LocalDateTime.now().format(dateTimeFormatter));
         statClient.hit(hitDto);
+        // 2. Увеличиваем счетчик просмотров в БД
+        eventRepository.incrementViewsByUri(uri);
     }
 
     private int parseUri(String uri) {
