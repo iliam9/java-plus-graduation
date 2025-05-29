@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.category.dto.CategoryDto;
 import ru.practicum.ewm.category.service.PublicCategoryService;
@@ -13,6 +14,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 @RequestMapping("/categories")
 public class PublicCategoryController {
     public final PublicCategoryService publicCategoryService;
