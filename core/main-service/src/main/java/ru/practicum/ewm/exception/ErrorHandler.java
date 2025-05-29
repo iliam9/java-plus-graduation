@@ -60,13 +60,13 @@ public class ErrorHandler {
         final List<Violation> violations = List.of(new Violation("BAD REQUEST ERROR", e.getMessage()));
         return new ErrorResponse(violations);
     }
-//
-//    @ExceptionHandler(Throwable.class)
-//    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-//    @ResponseBody
-//    public ErrorResponse handleThrowable(Throwable e) {
-//        log.error("Unhandled exception: ", e);
-//        String message = "Internal Server Error. Please try later.";
-//        return new ErrorResponse(List.of(new Violation("SERVER_ERROR", message)));
-//    }
+
+    @ExceptionHandler(Throwable.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ResponseBody
+    public ErrorResponse handleThrowable(Throwable e) {
+        log.error("Unhandled exception: ", e);
+        String message = "Internal Server Error. Please try later.";
+        return new ErrorResponse(List.of(new Violation("SERVER_ERROR", message)));
+    }
 }
