@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -20,12 +21,10 @@ public class ErrorHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse onConstraintValidationException(ConstraintViolationException e) {
         final List<Violation> violations = e.getConstraintViolations().stream()
-                .map(
-                        violation -> new Violation(
-                                violation.getPropertyPath().toString(),
-                                violation.getMessage()
-                        )
-                )
+                .map(violation -> new Violation(
+                        violation.getPropertyPath().toString(),
+                        violation.getMessage()
+                ))
                 .collect(Collectors.toList());
         return new ErrorResponse(violations);
     }
@@ -40,24 +39,41 @@ public class ErrorHandler {
         return new ErrorResponse(violations);
     }
 
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleNotFoundException(NotFoundException e) {
-        final List<Violation> violations = List.of(new Violation("NOT FOUND", e.getMessage()));
-        return new ErrorResponse(violations);
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleValidationException(ValidationException e) {
-        final List<Violation> violations = List.of(new Violation("VALIDATE ERROR", e.getMessage()));
-        return new ErrorResponse(violations);
-    }
-
-    @ExceptionHandler
+    @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    public ErrorResponse handleMissingParams(MissingServletRequestParameterException e) {
+        final List<Violation> violations = List.of(
+                new Violation(e.getParameterName(), "Parameter is missing"));
+        return new ErrorResponse(violations);
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ResponseBody
+    public ErrorResponse handleNotFoundException(NotFoundException e) {
+        final List<Violation> violations = List.of(new Violation("NOT_FOUND", e.getMessage()));
+        return new ErrorResponse(violations);
+    }
+
+    @ExceptionHandler({
+            ValidationException.class,
+            ParticipantLimitReachedException.class,
+            EventUpdateConflictException.class,
+            RequestProcessingException.class
+    })
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ResponseBody
+    public ErrorResponse handleConflictExceptions(RuntimeException e) {
+        final List<Violation> violations = List.of(new Violation("CONFLICT", e.getMessage()));
+        return new ErrorResponse(violations);
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
     public ErrorResponse handleBadRequestException(BadRequestException e) {
-        final List<Violation> violations = List.of(new Violation("BAD REQUEST ERROR", e.getMessage()));
+        final List<Violation> violations = List.of(new Violation("BAD_REQUEST", e.getMessage()));
         return new ErrorResponse(violations);
     }
 
@@ -66,7 +82,8 @@ public class ErrorHandler {
     @ResponseBody
     public ErrorResponse handleThrowable(Throwable e) {
         log.error("Unhandled exception: ", e);
-        String message = "Internal Server Error. Please try later.";
-        return new ErrorResponse(List.of(new Violation("SERVER_ERROR", message)));
+        return new ErrorResponse(List.of(
+                new Violation("INTERNAL_ERROR", "Internal Server Error. Please try later.")
+        ));
     }
 }
