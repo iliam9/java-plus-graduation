@@ -1,5 +1,7 @@
 package ru.practicum.ewm.event.controller;
 
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -38,8 +40,8 @@ public class AdminEventController {
                                                 @RequestParam(required = false) List<Long> categoryIds,
                                                 @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeStart,
                                                 @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,
-                                                @RequestParam(required = false, defaultValue = "0") Long from,
-                                                @RequestParam(required = false, defaultValue = "10") Long size) {
+                                                @RequestParam(defaultValue = "0") @PositiveOrZero(message = "Параметр 'from' не может быть отрицательным") Long from,
+                                                @RequestParam(defaultValue = "10") @Positive(message = "Параметр 'size' должен быть больше 0") Long size) {
         log.info("Поступил запрос Get /admin/events на получение Events с параметрами: userIds = {}, " +
                  "states = {}, categoryIds = {}, rangeStart = {}, rangeEnd = {}, from = {}, size = {}",
                 userIds, states, categoryIds, rangeStart, rangeEnd, from, size);
