@@ -12,9 +12,7 @@ import ru.practicum.ewm.event.dto.*;
 import ru.practicum.ewm.event.dto.mapper.EventMapper;
 import ru.practicum.ewm.event.model.Event;
 import ru.practicum.ewm.event.model.EventState;
-import ru.practicum.ewm.exception.ConflictException;
-import ru.practicum.ewm.exception.NotFoundException;
-import ru.practicum.ewm.exception.ValidationException;
+import ru.practicum.ewm.exception.*;
 import ru.practicum.ewm.request.repository.RequestRepository;
 import ru.practicum.ewm.user.repository.UserRepository;
 import ru.practicum.ewm.user.model.User;
@@ -36,17 +34,11 @@ public class EventService {
     private static final long HOURS_BEFORE_EVENT = 2;
 
     public List<EventShortDto> getAllEventsOfUser(Long userId, int from, int size) {
-
         checkUserExists(userId);
-        int page = from / size;
-        PageRequest pageRequest = PageRequest.of(page, size);
-
-        Page<Event> eventPage = eventRepository.findAllByInitiatorId(userId, pageRequest);
-
-        return eventPage.stream()
+        PageRequest pageRequest = PageRequest.of(from / size, size);
+        return eventRepository.findAllByInitiatorId(userId, pageRequest)
                 .map(EventMapper::toEventShortDto)
-                .collect(Collectors.toList());
-
+                .getContent();
     }
 
     @Transactional
@@ -54,104 +46,96 @@ public class EventService {
         User initiator = getUserOrThrow(userId);
         Category category = getCategoryOrThrow(dto.getCategory());
 
-        checkEventDate(dto.getEventDate());
+        validateEventDate(dto.getEventDate());
+
         Event event = EventMapper.toEvent(dto, initiator, category);
-        Event saved = eventRepository.save(event);
-        return EventMapper.toEventFullDto(saved);
+        return EventMapper.toEventFullDto(eventRepository.save(event));
     }
 
     public EventFullDto getEventOfUser(Long userId, Long eventId) {
-        checkUserExists(userId);
-        Event event = getEventOrThrow(eventId);
-        if (!event.getInitiator().getId().equals(userId)) {
-            throw new NotFoundException("Событие не принадлежит пользователю id=" + userId);
-        }
+        Event event = getEventWithOwnerCheck(userId, eventId);
         return EventMapper.toEventFullDto(event);
-
     }
 
     @Transactional
     public EventFullDto updateEventOfUser(Long userId, Long eventId, UpdateEventUserRequest dto) {
-        checkUserExists(userId);
-        Event event = getEventOrThrow(eventId);
-        if (!event.getInitiator().getId().equals(userId)) {
-            throw new NotFoundException("Событие не принадлежит пользователю id=" + userId);
-        }
+        Event event = getEventWithOwnerCheck(userId, eventId);
 
-        if (EventState.PUBLISHED.equals(event.getState())) {
-            throw new ConflictException("Нельзя изменять уже опубликованное событие");
-
+        if (event.getState() == EventState.PUBLISHED) {
+            throw new EventUpdateConflictException("Cannot modify published event");
         }
 
         if (dto.getEventDate() != null) {
-            checkEventDate(dto.getEventDate());
+            validateEventDate(dto.getEventDate());
         }
 
+        Category category = dto.getCategory() != null ?
+                getCategoryOrThrow(dto.getCategory()) : null;
 
-        Category category = null;
-        if (dto.getCategory() != null) {
-            category = getCategoryOrThrow(dto.getCategory());
-        }
-        if (dto.getStateAction() != null) {
-            updateState(event, dto.getStateAction());
-        }
         EventMapper.updateEventFromUserRequest(event, dto, category);
-        Event updated = eventRepository.save(event);
 
-        return EventMapper.toEventFullDto(updated);
+        if (dto.getStateAction() != null) {
+            updateEventState(event, dto.getStateAction());
+        }
+
+        return EventMapper.toEventFullDto(eventRepository.save(event));
     }
 
-    // Вспомогательные методы
-    private void updateState(Event event, String stateAction) {
+    private Event getEventWithOwnerCheck(Long userId, Long eventId) {
+        Event event = getEventOrThrow(eventId);
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new NotFoundException("Event with id=" + eventId + " doesn't belong to user id=" + userId);
+        }
+        return event;
+    }
+
+    private void updateEventState(Event event, String stateAction) {
         switch (stateAction) {
             case "CANCEL_REVIEW":
-                if (EventState.PENDING.equals(event.getState())) {
-                    event.setState(EventState.CANCELED);
-                } else {
-                    throw new ConflictException("Событие можно отменить только в состоянии PENDING.");
+                if (event.getState() != EventState.PENDING) {
+                    throw new EventStateConflictException("Only pending events can be cancelled");
                 }
+                event.setState(EventState.CANCELED);
                 break;
             case "SEND_TO_REVIEW":
-                if (EventState.PENDING.equals(event.getState()) || EventState.CANCELED.equals(event.getState())) {
-                    event.setState(EventState.PENDING);
-                } else {
-                    throw new ConflictException("Событие можно отправить на модерацию только в состоянии PENDING.");
+                if (event.getState() != EventState.PENDING && event.getState() != EventState.CANCELED) {
+                    throw new EventStateConflictException("Only pending or cancelled events can be sent for review");
                 }
+                event.setState(EventState.PENDING);
                 break;
             default:
-                throw new ValidationException("Некорректное значение stateAction: " + stateAction);
+                throw new ValidationException("Invalid state action: " + stateAction);
+        }
+    }
+
+    private void validateEventDate(LocalDateTime eventDate) {
+        if (eventDate.isBefore(LocalDateTime.now().plusHours(HOURS_BEFORE_EVENT))) {
+            throw new EventDateConflictException(
+                    "Event date must be at least " + HOURS_BEFORE_EVENT + " hours after current time"
+            );
         }
     }
 
     private void checkUserExists(Long userId) {
         if (!userRepository.existsById(userId)) {
-            throw new NotFoundException("Пользователь с id=" + userId + " не найден");
+            throw new NotFoundException("User with id=" + userId + " not found");
         }
     }
 
     private Event getEventOrThrow(Long id) {
         return eventRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Событие с id=" + id + " не найдено"));
+                .orElseThrow(() -> new NotFoundException("Event with id=" + id + " not found"));
     }
 
     private Category getCategoryOrThrow(Long catId) {
         return categoryRepository.findById(catId)
-                .orElseThrow(() -> new NotFoundException("Категория с id=" + catId + " не найдена"));
+                .orElseThrow(() -> new NotFoundException("Category with id=" + catId + " not found"));
     }
 
     private User getUserOrThrow(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
+                .orElseThrow(() -> new NotFoundException("User with id=" + userId + " not found"));
     }
-
-    private void checkEventDate(LocalDateTime eventDate) {
-        if (eventDate.isBefore(LocalDateTime.now().plusHours(HOURS_BEFORE_EVENT))) {
-            throw new ConflictException(
-                    "Дата события не может быть раньше, чем через " + HOURS_BEFORE_EVENT + " часа(ов) от текущего момента."
-            );
-        }
-    }
-
 
     private Long getConfirmedRequests(Long eventId) {
         return requestRepository.countConfirmedRequestsByEventId(eventId);

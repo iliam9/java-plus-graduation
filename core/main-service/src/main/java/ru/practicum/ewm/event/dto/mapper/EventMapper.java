@@ -1,5 +1,6 @@
 package ru.practicum.ewm.event.dto.mapper;
 
+import lombok.experimental.UtilityClass;
 import ru.practicum.ewm.category.mapper.CategoryMapper;
 import ru.practicum.ewm.category.model.Category;
 import ru.practicum.ewm.event.dto.*;
@@ -11,10 +12,10 @@ import ru.practicum.ewm.user.dto.mapper.UserMapper;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
+@UtilityClass
 public class EventMapper {
 
-    public static Event toEvent(NewEventDto dto, User initiator, Category category) {
+    public Event toEvent(NewEventDto dto, User initiator, Category category) {
         Event event = new Event();
         event.setAnnotation(dto.getAnnotation());
         event.setDescription(dto.getDescription());
@@ -34,7 +35,7 @@ public class EventMapper {
         return event;
     }
 
-    public static void updateEventFromUserRequest(Event event, UpdateEventUserRequest dto, Category category) {
+    public void updateEventFromUserRequest(Event event, UpdateEventUserRequest dto, Category category) {
         if (dto.getAnnotation() != null) {
             event.setAnnotation(dto.getAnnotation());
         }
@@ -66,7 +67,7 @@ public class EventMapper {
 
     }
 
-    public static EventFullDto toEventFullDto(Event event) {
+    public EventFullDto toEventFullDto(Event event) {
         EventFullDto dto = new EventFullDto();
         dto.setId(event.getId());
         dto.setAnnotation(event.getAnnotation());
@@ -87,7 +88,7 @@ public class EventMapper {
         return dto;
     }
 
-    public static List<EventFullDto> toEventFullDto(Iterable<Event> events) {
+    public List<EventFullDto> toEventFullDto(Iterable<Event> events) {
         List<EventFullDto> result = new ArrayList<>();
         for (Event event : events) {
             result.add(toEventFullDto(event));
@@ -95,7 +96,7 @@ public class EventMapper {
         return result;
     }
 
-    public static EventShortDto toEventShortDto(Event event) {
+    public EventShortDto toEventShortDto(Event event) {
         EventShortDto dto = new EventShortDto();
         dto.setId(event.getId());
         dto.setAnnotation(event.getAnnotation());
@@ -109,7 +110,7 @@ public class EventMapper {
         return dto;
     }
 
-    public static List<EventShortDto> toEventShortDto(Iterable<Event> events) {
+    public List<EventShortDto> toEventShortDto(Iterable<Event> events) {
         List<EventShortDto> result = new ArrayList<>();
         for (Event event : events) {
             result.add(toEventShortDto(event));
