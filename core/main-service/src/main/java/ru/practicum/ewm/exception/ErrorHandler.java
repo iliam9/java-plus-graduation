@@ -44,7 +44,7 @@ public class ErrorHandler {
     @ResponseBody
     public ErrorResponse handleMissingParams(MissingServletRequestParameterException e) {
         final List<Violation> violations = List.of(
-                new Violation(e.getParameterName(), "Parameter is missing"));
+                new Violation(e.getParameterName(), "Required parameter is missing"));
         return new ErrorResponse(violations);
     }
 
@@ -56,25 +56,30 @@ public class ErrorHandler {
         return new ErrorResponse(violations);
     }
 
-    @ExceptionHandler({
-            ValidationException.class,
-            ParticipantLimitReachedException.class,
-            EventUpdateConflictException.class,
-            RequestProcessingException.class
-    })
-    @ResponseStatus(HttpStatus.CONFLICT)
-    @ResponseBody
-    public ErrorResponse handleConflictExceptions(RuntimeException e) {
-        final List<Violation> violations = List.of(new Violation("CONFLICT", e.getMessage()));
-        return new ErrorResponse(violations);
-    }
-
     @ExceptionHandler(BadRequestException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ResponseBody
     public ErrorResponse handleBadRequestException(BadRequestException e) {
         final List<Violation> violations = List.of(new Violation("BAD_REQUEST", e.getMessage()));
         return new ErrorResponse(violations);
+    }
+
+    @ExceptionHandler({
+            ValidationException.class,
+            ParticipantLimitReachedException.class,
+            EventUpdateConflictException.class,
+            RequestProcessingException.class,
+            IllegalStateException.class
+    })
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ResponseBody
+    public ErrorResponse handleConflictExceptions(RuntimeException e) {
+        String errorMessage = e instanceof IllegalStateException
+                ? "Operation not allowed for current state"
+                : e.getMessage();
+
+        log.warn("Conflict detected: {}", errorMessage);
+        return new ErrorResponse(List.of(new Violation("CONFLICT", errorMessage)));
     }
 
     @ExceptionHandler(Throwable.class)
