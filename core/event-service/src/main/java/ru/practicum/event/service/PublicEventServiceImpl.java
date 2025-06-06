@@ -88,6 +88,11 @@ public class PublicEventServiceImpl implements PublicEventService {
         return eventShortDtos;
     }
 
+    @Override
+    public Optional<Event> getEventFullById(long id) {
+        return Optional.empty();
+    }
+
     private void validateTimeRange(LocalDateTime rangeStart, LocalDateTime rangeEnd) {
         LocalDateTime start = rangeStart != null ? rangeStart : LocalDateTime.now();
         LocalDateTime end = rangeEnd != null ? rangeEnd : start.plusYears(1);
@@ -184,15 +189,4 @@ public class PublicEventServiceImpl implements PublicEventService {
             dtos.sort(Comparator.comparing(EventShortDto::getViews).reversed());
         }
     }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<Event> getEventFullById(long id) {
-        return eventRepository.findById(id);
-    }
 }
-
-
-
-
-
