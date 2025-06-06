@@ -1,6 +1,5 @@
 package ru.practicum.event.mapper;
 
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.practicum.category.mapper.CategoryMapper;
@@ -28,10 +27,6 @@ public class EventMapper {
     private final UserClient userServiceClient;
 
     public Event toEvent(NewEventDto dto, User initiator, Category category) {
-        if (dto == null || initiator == null || category == null) {
-            throw new IllegalArgumentException("Arguments cannot be null");
-        }
-
         Event event = new Event();
         event.setAnnotation(dto.getAnnotation());
         event.setDescription(dto.getDescription());
@@ -47,7 +42,6 @@ public class EventMapper {
         event.setCategory(category);
         event.setViews(0L);
         event.setConfirmedRequests(0L);
-
         return event;
     }
 
