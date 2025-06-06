@@ -1,5 +1,6 @@
 package ru.practicum.comment.mapper;
 
+import lombok.experimental.UtilityClass;
 import ru.practicum.comment.model.Comment;
 import ru.practicum.dto.comment.CommentShortDto;
 import ru.practicum.dto.comment.NewComment;
@@ -10,10 +11,10 @@ import ru.practicum.user.model.User;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
+@UtilityClass
 public class CommentMapper {
 
-    public static Comment fromNewCommentToComment(NewComment newComment, User author, Event event) {
+    public Comment fromNewCommentToComment(NewComment newComment, User author, Event event) {
         Comment comment = new Comment();
         comment.setText(newComment.getText());
         comment.setAuthor(author);
@@ -23,7 +24,7 @@ public class CommentMapper {
         return comment;
     }
 
-    public static CommentShortDto toCommentShortDto(Comment comment) {
+    public CommentShortDto toCommentShortDto(Comment comment) {
         CommentShortDto commentShortDto = new CommentShortDto();
         commentShortDto.setId(comment.getId());
         commentShortDto.setEventId(comment.getEvent().getId());
@@ -35,7 +36,7 @@ public class CommentMapper {
         return commentShortDto;
     }
 
-    public static List<CommentShortDto> toCommentShortDto(Iterable<Comment> comments) {
+    public List<CommentShortDto> toCommentShortDto(Iterable<Comment> comments) {
         List<CommentShortDto> shortComments = new ArrayList<>();
         for (Comment comment : comments) {
             shortComments.add(toCommentShortDto(comment));

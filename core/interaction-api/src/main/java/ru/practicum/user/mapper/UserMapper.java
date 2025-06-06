@@ -2,6 +2,7 @@ package ru.practicum.user.mapper;
 
 
 
+import lombok.experimental.UtilityClass;
 import ru.practicum.dto.user.NewUserRequest;
 import ru.practicum.dto.user.UserDto;
 import ru.practicum.dto.user.UserShortDto;
@@ -9,10 +10,10 @@ import ru.practicum.user.model.User;
 
 import java.util.ArrayList;
 import java.util.List;
-
+@UtilityClass
 public class UserMapper {
 
-    public static UserDto toUserDto(User user) {
+    public UserDto toUserDto(User user) {
         UserDto userDto = new UserDto();
         userDto.setId(user.getId());
         userDto.setName(user.getName());
@@ -20,7 +21,7 @@ public class UserMapper {
         return userDto;
     }
 
-    public static List<UserDto> toUserDto(Iterable<User> users) {
+    public List<UserDto> toUserDto(Iterable<User> users) {
         List<UserDto> result = new ArrayList<>();
         for (User user : users) {
             result.add(toUserDto(user));
@@ -28,14 +29,14 @@ public class UserMapper {
         return result;
     }
 
-    public static UserShortDto toUserShortDto(User user) {
+    public UserShortDto toUserShortDto(User user) {
         UserShortDto userShortDto = new UserShortDto();
         userShortDto.setId(user.getId());
         userShortDto.setName(user.getName());
         return userShortDto;
     }
 
-    public static List<UserShortDto> toUserShortDto(Iterable<User> users) {
+    public List<UserShortDto> toUserShortDto(Iterable<User> users) {
         List<UserShortDto> result = new ArrayList<>();
         for (User user : users) {
             result.add(toUserShortDto(user));
@@ -43,7 +44,7 @@ public class UserMapper {
         return result;
     }
 
-    public static User toUser(NewUserRequest newUserRequest) {
+    public User toUser(NewUserRequest newUserRequest) {
         User user = new User();
         user.setName(newUserRequest.getName());
         user.setEmail(newUserRequest.getEmail());
