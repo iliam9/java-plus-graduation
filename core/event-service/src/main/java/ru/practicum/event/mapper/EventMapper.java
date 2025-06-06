@@ -1,5 +1,6 @@
 package ru.practicum.event.mapper;
 
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.practicum.category.mapper.CategoryMapper;
@@ -17,9 +18,8 @@ import ru.practicum.user.model.User;
 
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -27,7 +27,11 @@ import java.util.stream.Collectors;
 public class EventMapper {
     private final UserClient userServiceClient;
 
-    public static Event toEvent(NewEventDto dto, User initiator, Category category) {
+    public Event toEvent(NewEventDto dto, User initiator, Category category) {
+        if (dto == null || initiator == null || category == null) {
+            throw new IllegalArgumentException("Arguments cannot be null");
+        }
+
         Event event = new Event();
         event.setAnnotation(dto.getAnnotation());
         event.setDescription(dto.getDescription());
@@ -47,7 +51,14 @@ public class EventMapper {
         return event;
     }
 
-    public static void updateEventFromUserRequest(Event event, UpdateEventUserRequest dto, Category category) {
+    public void updateEventFromUserRequest(Event event, UpdateEventUserRequest dto, Category category) {
+        if (event == null) {
+            throw new IllegalArgumentException("Event cannot be null");
+        }
+        if (dto == null) {
+            return;
+        }
+
         if (dto.getAnnotation() != null) {
             event.setAnnotation(dto.getAnnotation());
         }
@@ -72,36 +83,16 @@ public class EventMapper {
         if (dto.getTitle() != null) {
             event.setTitle(dto.getTitle());
         }
-        if (dto.getCategory() != null) {
+        if (category != null) {
             event.setCategory(category);
         }
-
-    }
-
-    public EventFullDto toEventFullDto(Event event) {
-        User user = getUser(event.getInitiatorId());
-
-        EventFullDto dto = new EventFullDto();
-        dto.setId(event.getId());
-        dto.setAnnotation(event.getAnnotation());
-        dto.setDescription(event.getDescription());
-        dto.setEventDate(event.getEventDate());
-        dto.setLocation(event.getLocation());
-        dto.setPaid(event.isPaid());
-        dto.setParticipantLimit(event.getParticipantLimit());
-        dto.setRequestModeration(event.isRequestModeration());
-        dto.setState(event.getState());
-        dto.setTitle(event.getTitle());
-        dto.setCreatedOn(event.getCreatedOn());
-        dto.setPublishedOn(event.getPublishedOn());
-        dto.setInitiator(UserMapper.toUserShortDto(user));
-        dto.setCategory(CategoryMapper.mapToCategoryDto(event.getCategory()));
-        dto.setConfirmedRequests(event.getConfirmedRequests() != null ? event.getConfirmedRequests() : 0L);
-        dto.setViews(event.getViews() != null ? event.getViews() : 0L);
-        return dto;
     }
 
     public EventFullDto toEventFullDto(Event event, User user) {
+        if (event == null || user == null) {
+            throw new IllegalArgumentException("Arguments cannot be null");
+        }
+
         EventFullDto dto = new EventFullDto();
         dto.setId(event.getId());
         dto.setAnnotation(event.getAnnotation());
@@ -119,35 +110,40 @@ public class EventMapper {
         dto.setCategory(CategoryMapper.mapToCategoryDto(event.getCategory()));
         dto.setConfirmedRequests(event.getConfirmedRequests() != null ? event.getConfirmedRequests() : 0L);
         dto.setViews(event.getViews() != null ? event.getViews() : 0L);
+
         return dto;
+    }
+
+    public EventFullDto toEventFullDto(Event event) {
+        User user = userServiceClient.getUserById(event.getInitiatorId())
+                .orElseThrow(() -> new NotFoundException("User with id = " + event.getInitiatorId() + " not found"));
+        return toEventFullDto(event, user);
     }
 
     public List<EventFullDto> toEventFullDto(List<Event> events) {
-        List<Long> userIds = events.stream().map(Event::getInitiatorId).toList();
-        Map<Long, User> users = loadUsers(userIds);
-        Map<Long, Category> categories = events.stream().collect(Collectors.toMap(Event::getId, Event::getCategory));
+        if (events == null || events.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> userIds = events.stream()
+                .map(Event::getInitiatorId)
+                .distinct()
+                .toList();
+
+        Map<Long, User> users = userServiceClient.getUsersWithIds(userIds)
+                .stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
         return events.stream()
-            .map(e -> toEventFullDto(e, users.get(e.getInitiatorId())))
-            .toList();
-    }
-
-    public EventShortDto toEventShortDto(Event event) {
-        User user = getUser(event.getInitiatorId());
-
-        EventShortDto dto = new EventShortDto();
-        dto.setId(event.getId());
-        dto.setAnnotation(event.getAnnotation());
-        dto.setEventDate(event.getEventDate());
-        dto.setPaid(event.isPaid());
-        dto.setTitle(event.getTitle());
-        dto.setConfirmedRequests(event.getConfirmedRequests() != null ? event.getConfirmedRequests() : 0L);
-        dto.setViews(event.getViews() != null ? event.getViews() : 0L);
-        dto.setInitiator(UserMapper.toUserShortDto(user));
-        dto.setCategory(CategoryMapper.mapToCategoryDto(event.getCategory()));
-        return dto;
+                .map(event -> toEventFullDto(event, users.get(event.getInitiatorId())))
+                .toList();
     }
 
     public EventShortDto toEventShortDto(Event event, User user) {
+        if (event == null || user == null) {
+            throw new IllegalArgumentException("Arguments cannot be null");
+        }
+
         EventShortDto dto = new EventShortDto();
         dto.setId(event.getId());
         dto.setAnnotation(event.getAnnotation());
@@ -158,25 +154,32 @@ public class EventMapper {
         dto.setViews(event.getViews() != null ? event.getViews() : 0L);
         dto.setInitiator(UserMapper.toUserShortDto(user));
         dto.setCategory(CategoryMapper.mapToCategoryDto(event.getCategory()));
+
         return dto;
     }
 
+    public EventShortDto toEventShortDto(Event event) {
+        User user = userServiceClient.getUserById(event.getInitiatorId())
+                .orElseThrow(() -> new NotFoundException("User with id = " + event.getInitiatorId() + " not found"));
+        return toEventShortDto(event, user);
+    }
+
     public List<EventShortDto> toEventShortDto(List<Event> events) {
-        List<Long> userIds = events.stream().map(Event::getInitiatorId).toList();
-        Map<Long, User> users = loadUsers(userIds);
-        Map<Long, Category> categories = events.stream().collect(Collectors.toMap(Event::getId, Event::getCategory));
+        if (events == null || events.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> userIds = events.stream()
+                .map(Event::getInitiatorId)
+                .distinct()
+                .toList();
+
+        Map<Long, User> users = userServiceClient.getUsersWithIds(userIds)
+                .stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
         return events.stream()
-            .map(e -> toEventShortDto(e, users.get(e.getInitiatorId())))
-            .toList();
-
-    }
-
-    private Map<Long, User> loadUsers(List<Long> ids) {
-        return userServiceClient.getUsersWithIds(ids).stream().collect(Collectors.toMap(User::getId, user -> user));
-    }
-
-    private User getUser(Long userId) {
-        return userServiceClient.getUserById(userId)
-            .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден"));
+                .map(event -> toEventShortDto(event, users.get(event.getInitiatorId())))
+                .toList();
     }
 }
