@@ -1,5 +1,7 @@
 package ru.practicum.comment.controller;
 
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -23,8 +25,8 @@ public class AdminCommentController {
     @GetMapping
     public List<CommentShortDto> getCommentsByParams(@RequestParam(required = false) List<Long> userIds,
                                                      @RequestParam(required = false) List<Long> eventIds,
-                                                     @RequestParam(required = false, defaultValue = "0") Integer from,
-                                                     @RequestParam(required = false, defaultValue = "10") Integer size) {
+                                                     @RequestParam(defaultValue = "0") @PositiveOrZero(message = "Параметр 'from' не может быть отрицательным") Integer from,
+                                                     @RequestParam(defaultValue = "10") @Positive(message = "Параметр 'size' должен быть больше 0") Integer size) {
         log.info("Поступил запрос Get /admin/comments на получение List<CommentShortDto> с параметрами userIds = {}, eventIds = {}, from = {}, size = {}", userIds, eventIds, from, size);
         List<CommentShortDto> response = adminCommentService.getCommentsByParams(userIds, eventIds, from, size);
         log.info("Сформирован ответ Get /admin/comments с телом: {}", response);
