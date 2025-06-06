@@ -78,7 +78,7 @@ public class EventMapper {
 
     }
 
-    public EventFullDto toEventFullDto(Event event) {
+    public static EventFullDto toEventFullDto(Event event) {
         User user = getUser(event.getInitiatorId());
 
         EventFullDto dto = new EventFullDto();
@@ -131,7 +131,7 @@ public class EventMapper {
             .toList();
     }
 
-    public EventShortDto toEventShortDto(Event event) {
+    public static EventShortDto toEventShortDto(Event event) {
         User user = getUser(event.getInitiatorId());
 
         EventShortDto dto = new EventShortDto();

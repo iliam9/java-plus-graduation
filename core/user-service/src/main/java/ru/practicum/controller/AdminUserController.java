@@ -23,8 +23,8 @@ public class AdminUserController {
 
     @GetMapping
     public List<UserDto> getUsersByParams(@RequestParam(required = false) List<Long> ids,
-                                          @RequestParam(required = false, defaultValue = "0") Integer from,
-                                          @RequestParam(required = false, defaultValue = "10") Integer size) {
+                                          @RequestParam(defaultValue = "0") Integer from,
+                                          @RequestParam(defaultValue = "10") Integer size) {
         log.info("Поступил запрос Get /admin/users на получение List<UserDto> с параметрами ids = {}, from = {}, size = {}", ids, from, size);
         List<UserDto> response = adminUserService.getUsersByParams(ids, from, size);
         log.info("Сформирован ответ Get /admin/users с телом: {}", response);

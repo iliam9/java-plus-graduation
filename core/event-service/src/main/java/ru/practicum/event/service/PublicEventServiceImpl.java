@@ -27,6 +27,7 @@ import ru.practicum.exception.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -34,31 +35,30 @@ import java.util.*;
 public class PublicEventServiceImpl implements PublicEventService {
 
     private static final String APP_NAME = "ewm-main";
+    private static final String EVENTS_URI_PREFIX = "/events/";
 
     private final EventRepository eventRepository;
     private final StatsClient statsClient;
-    private final EventMapper eventMapper;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional(readOnly = true)
     public EventFullDto getEventById(long id, HttpServletRequest request) {
         Event event = eventRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException("Event c id " + id + "не найден"));
+                .orElseThrow(() -> new NotFoundException("Event с id " + id + " не найден"));
 
         if (event.getState() != EventState.PUBLISHED) {
-            throw new NotFoundException("Event c id " + id + "еще не опубликован");
+            throw new NotFoundException("Event с id " + id + " еще не опубликован");
         }
 
         addHit(request);
-        updateEventViewsInRepository(event);
+        updateEventViews(event);
 
-        EventFullDto eventFullDto = eventMapper.toEventFullDto(event);
-
-        log.info("получен eventFullDto с ID = {}", eventFullDto.getId());
-        return eventFullDto;
+        return EventMapper.toEventFullDto(event);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventShortDto> getEvents(String text,
                                          List<Long> categories,
                                          Boolean paid,
@@ -70,50 +70,97 @@ public class PublicEventServiceImpl implements PublicEventService {
                                          int size,
                                          HttpServletRequest request) {
 
-        LocalDateTime start = rangeStart != null ? rangeStart : LocalDateTime.now();
-        LocalDateTime end = rangeEnd != null ? rangeEnd : LocalDateTime.now().plusYears(1);
+        validateTimeRange(rangeStart, rangeEnd);
 
-        if (end.isBefore(start)) {
-            throw new BadRequestException("Недопустимый временной промежуток, время окончание поиска не может быть раньше времени начала поиска");
-        }
-
-
-        PageRequest page = PageRequest.of(from, size);
-        Page<Event> pageEvents;
-        if (onlyAvailable) {
-            pageEvents = eventRepository.findAllByPublicFiltersAndOnlyAvailable(text, categories, paid, start, end, page);
-        } else {
-            pageEvents = eventRepository.findAllByPublicFilters(text, categories, paid, start, end, page);
-        }
+        PageRequest page = PageRequest.of(from / size, size);
+        Page<Event> pageEvents = getFilteredEvents(text, categories, paid, rangeStart, rangeEnd, onlyAvailable, page);
 
         List<Event> events = pageEvents.getContent();
-
         addHit(request);
+        updateEventsViews(events);
 
-        List<EventShortDto> eventShortDtos = new ArrayList<>();
-        for (Event event : events) {
-            Event ev = updateEventViewsInRepository(event);
-            EventShortDto dto = eventMapper.toEventShortDto(ev);
-            eventShortDtos.add(dto);
-        }
+        List<EventShortDto> eventShortDtos = events.stream()
+                .map(EventMapper::toEventShortDto)
+                .collect(Collectors.toList());
 
-        if (sort != null) {
-            if (sort.equals(EventSort.EVENT_DATE)) {
-                eventShortDtos.sort(Comparator.comparing(EventShortDto::getEventDate));
-            } else {
-                eventShortDtos.sort(Comparator.comparing(EventShortDto::getViews, Comparator.reverseOrder()));
-            }
-        } else {
-            eventShortDtos.sort(Comparator.comparing(EventShortDto::getViews, Comparator.reverseOrder()));
-        }
+        sortEventDtos(eventShortDtos, sort);
 
         return eventShortDtos;
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<Event> getEventFullById(long id) {
-        return eventRepository.findById(id);
+    private void validateTimeRange(LocalDateTime rangeStart, LocalDateTime rangeEnd) {
+        LocalDateTime start = rangeStart != null ? rangeStart : LocalDateTime.now();
+        LocalDateTime end = rangeEnd != null ? rangeEnd : start.plusYears(1);
+
+        if (end.isBefore(start)) {
+            throw new BadRequestException("Недопустимый временной промежуток");
+        }
+    }
+
+    private Page<Event> getFilteredEvents(String text,
+                                          List<Long> categories,
+                                          Boolean paid,
+                                          LocalDateTime rangeStart,
+                                          LocalDateTime rangeEnd,
+                                          Boolean onlyAvailable,
+                                          PageRequest page) {
+        LocalDateTime start = rangeStart != null ? rangeStart : LocalDateTime.now();
+        LocalDateTime end = rangeEnd != null ? rangeEnd : start.plusYears(1);
+
+        return onlyAvailable
+                ? eventRepository.findAllByPublicFiltersAndOnlyAvailable(text, categories, paid, start, end, page)
+                : eventRepository.findAllByPublicFilters(text, categories, paid, start, end, page);
+    }
+
+    private void updateEventsViews(List<Event> events) {
+        if (events.isEmpty()) {
+            return;
+        }
+
+        List<String> eventUris = events.stream()
+                .map(event -> EVENTS_URI_PREFIX + event.getId())
+                .collect(Collectors.toList());
+
+        Map<Long, Long> eventViews = getEventsViews(eventUris);
+
+        events.forEach(event -> {
+            Long views = eventViews.getOrDefault(event.getId(), 0L);
+            event.setViews(views);
+        });
+
+        eventRepository.saveAll(events);
+    }
+
+    private Map<Long, Long> getEventsViews(List<String> uris) {
+        try {
+            ResponseEntity<Object> response = statsClient.getStats(
+                    LocalDateTime.now().minusYears(1),
+                    LocalDateTime.now().plusHours(1),
+                    uris,
+                    true);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                List<ViewStatsOutputDto> stats = objectMapper.convertValue(
+                        response.getBody(),
+                        new TypeReference<>() {});
+
+                return stats.stream()
+                        .collect(Collectors.toMap(
+                                stat -> Long.parseLong(stat.getUri().substring(EVENTS_URI_PREFIX.length())),
+                                ViewStatsOutputDto::getHits
+                        ));
+            }
+        } catch (Exception e) {
+            log.error("Failed to get views stats", e);
+        }
+        return Collections.emptyMap();
+    }
+
+    private void updateEventViews(Event event) {
+        String eventUri = EVENTS_URI_PREFIX + event.getId();
+        Map<Long, Long> views = getEventsViews(List.of(eventUri));
+        event.setViews(views.getOrDefault(event.getId(), 0L));
+        eventRepository.save(event);
     }
 
     private void addHit(HttpServletRequest request) {
@@ -122,34 +169,30 @@ public class PublicEventServiceImpl implements PublicEventService {
         hit.setUri(request.getRequestURI());
         hit.setIp(request.getRemoteAddr());
         hit.setTimestamp(LocalDateTime.now());
-        statsClient.addHit(hit);
-    }
-
-    private Event updateEventViewsInRepository(Event event) {
 
         try {
-            Long eventId = event.getId();
-            String eventUri = "/events/" + eventId;
-            ResponseEntity<Object> responseEntity = statsClient.getStats(LocalDateTime.now().minusYears(999), LocalDateTime.now().plusYears(1), List.of(eventUri), true);
-
-            if (responseEntity.getStatusCode().is2xxSuccessful()) {
-                ObjectMapper objectMapper = new ObjectMapper();
-                List<Map<String, Object>> responseBody = objectMapper.convertValue(responseEntity.getBody(), new TypeReference<List<Map<String, Object>>>() {
-                });
-
-                List<ViewStatsOutputDto> responseList = responseBody.stream()
-                    .map(map -> new ViewStatsOutputDto((String) map.get("app"), (String) map.get("uri"), ((Number) map.get("hits")).longValue()))
-                    .toList();
-
-                if (!responseList.isEmpty()) {
-                    ViewStatsOutputDto viewStatsOutputDto = responseList.getFirst();
-                    event.setViews(viewStatsOutputDto.getHits());
-                    return eventRepository.save(event);
-                }
-            }
-            return event;
+            statsClient.addHit(hit);
         } catch (Exception e) {
-            return event;
+            log.error("Failed to send hit to stats service", e);
         }
     }
+
+    private void sortEventDtos(List<EventShortDto> dtos, EventSort sort) {
+        if (sort == EventSort.EVENT_DATE) {
+            dtos.sort(Comparator.comparing(EventShortDto::getEventDate));
+        } else {
+            dtos.sort(Comparator.comparing(EventShortDto::getViews).reversed());
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Event> getEventFullById(long id) {
+        return eventRepository.findById(id);
+    }
 }
+
+
+
+
+
