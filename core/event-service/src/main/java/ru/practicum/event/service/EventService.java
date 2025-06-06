@@ -107,8 +107,8 @@ public class EventService {
 
             return eventMapper.toEventFullDto(updated);
         } catch (EventConflictException ex) {
-            log.error("Conflict occurred: {}", ex.getMessage());
-            throw ex;
+            log.error("Conflict occurred while updating event: {}", ex.getMessage());
+            throw new EventConflictException(ex.getMessage());
         }
     }
 
@@ -127,7 +127,8 @@ public class EventService {
             throw new EventConflictException("No need to process requests for this event");
         }
 
-        if (event.getConfirmedRequests() >= event.getParticipantLimit()) {
+        if (event.getConfirmedRequests() >= event.getParticipantLimit()
+                && request.getStatus().equals(RequestStatus.CONFIRMED.toString())) {
             throw new EventConflictException("The participant limit has been reached");
         }
 
@@ -138,9 +139,12 @@ public class EventService {
             throw new ValidationException("Invalid request status: " + request.getStatus());
         }
 
-
         List<ParticipationRequestDto> confirmedRequests = new ArrayList<>();
         List<ParticipationRequestDto> rejectedRequests = new ArrayList<>();
+
+        if (request.getStatus().equals(RequestStatus.REJECTED.toString())) {
+            throw new EventConflictException("Cannot reject already confirmed request");
+        }
 
         return new EventRequestStatusUpdateResult(confirmedRequests, rejectedRequests);
     }
