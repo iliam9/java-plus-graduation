@@ -27,6 +27,7 @@ import ru.practicum.exception.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -90,12 +91,10 @@ public class PublicEventServiceImpl implements PublicEventService {
 
         addHit(request);
 
-        List<EventShortDto> eventShortDtos = new ArrayList<>();
-        for (Event event : events) {
-            Event ev = updateEventViewsInRepository(event);
-            EventShortDto dto = eventMapper.toEventShortDto(ev);
-            eventShortDtos.add(dto);
-        }
+        List<EventShortDto> eventShortDtos = events.stream()
+                .map(this::updateEventViewsInRepository)
+                .map(eventMapper::toEventShortDto)
+                .collect(Collectors.toList());
 
         if (sort != null) {
             if (sort.equals(EventSort.EVENT_DATE)) {
