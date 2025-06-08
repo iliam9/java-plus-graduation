@@ -1,7 +1,6 @@
 package ru.practicum.event.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +15,8 @@ import ru.practicum.event.mapper.EventMapper;
 import ru.practicum.event.model.Event;
 import ru.practicum.event.model.EventState;
 import ru.practicum.event.repository.EventRepository;
-
 import ru.practicum.exception.ConflictException;
 import ru.practicum.exception.NotFoundException;
-import ru.practicum.exception.ValidationException;
 import ru.practicum.user.model.User;
 
 import java.time.LocalDateTime;
@@ -39,17 +36,14 @@ public class EventService {
     private static final long HOURS_BEFORE_EVENT = 2;
 
     public List<EventShortDto> getAllEventsOfUser(Long userId, int from, int size) {
-
         getUserOrThrow(userId);
         int page = from / size;
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        Page<Event> eventPage = eventRepository.findAllByInitiatorId(userId, pageRequest);
-
-        return eventPage.stream()
+        return eventRepository.findAllByInitiatorId(userId, pageRequest)
+                .stream()
                 .map(eventMapper::toEventShortDto)
                 .collect(Collectors.toList());
-
     }
 
     @Transactional
@@ -66,63 +60,61 @@ public class EventService {
     public EventFullDto getEventOfUser(Long userId, Long eventId) {
         getUserOrThrow(userId);
         Event event = getEventOrThrow(eventId);
+
         if (!event.getInitiatorId().equals(userId)) {
             throw new NotFoundException("Событие не принадлежит пользователю id=" + userId);
         }
-        return eventMapper.toEventFullDto(event);
 
+        return eventMapper.toEventFullDto(event);
     }
 
     @Transactional
     public EventFullDto updateEventOfUser(Long userId, Long eventId, UpdateEventUserRequest dto) {
         getUserOrThrow(userId);
         Event event = getEventOrThrow(eventId);
+
         if (!event.getInitiatorId().equals(userId)) {
             throw new NotFoundException("Событие не принадлежит пользователю id=" + userId);
         }
 
         if (EventState.PUBLISHED.equals(event.getState())) {
             throw new ConflictException("Нельзя изменять уже опубликованное событие");
-
         }
 
         if (dto.getEventDate() != null) {
             checkEventDate(dto.getEventDate());
         }
 
-
         Category category = null;
         if (dto.getCategory() != null) {
             category = getCategoryOrThrow(dto.getCategory());
         }
+
         if (dto.getStateAction() != null) {
-            updateState(event, dto.getStateAction());
+            updateState(event, EventStateAction.valueOf(dto.getStateAction()));
         }
+
         EventMapper.updateEventFromUserRequest(event, dto, category);
         Event updated = eventRepository.save(event);
 
         return eventMapper.toEventFullDto(updated);
     }
 
-    // Вспомогательные методы
-    private void updateState(Event event, String stateAction) {
+    private void updateState(Event event, EventStateAction stateAction) {
         switch (stateAction) {
-            case "CANCEL_REVIEW":
-                if (EventState.PENDING.equals(event.getState())) {
-                    event.setState(EventState.CANCELED);
-                } else {
+            case CANCEL_REVIEW:
+                if (event.getState() != EventState.PENDING) {
                     throw new ConflictException("Событие можно отменить только в состоянии PENDING.");
                 }
+                event.setState(EventState.CANCELED);
                 break;
-            case "SEND_TO_REVIEW":
-                if (EventState.PENDING.equals(event.getState()) || EventState.CANCELED.equals(event.getState())) {
-                    event.setState(EventState.PENDING);
-                } else {
-                    throw new ConflictException("Событие можно отправить на модерацию только в состоянии PENDING.");
+
+            case SEND_TO_REVIEW:
+                if (event.getState() != EventState.PENDING && event.getState() != EventState.CANCELED) {
+                    throw new ConflictException("Событие можно отправить на модерацию только из состояний PENDING или CANCELED.");
                 }
+                event.setState(EventState.PENDING);
                 break;
-            default:
-                throw new ValidationException("Некорректное значение stateAction: " + stateAction);
         }
     }
 
