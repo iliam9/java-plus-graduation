@@ -6,14 +6,20 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.client.UserClient;
 import ru.practicum.compilation.mapper.CompilationMapper;
 import ru.practicum.compilation.model.Compilation;
 import ru.practicum.compilation.repository.CompilationRepository;
 import ru.practicum.dto.compilation.CompilationDto;
+import ru.practicum.event.model.Event;
 import ru.practicum.exception.NotFoundException;
-
+import ru.practicum.user.model.User;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,29 +27,49 @@ import java.util.List;
 public class PublicCompilationServiceImpl implements PublicCompilationService {
     private final CompilationRepository compilationRepository;
     private final CompilationMapper compilationMapper;
+    private final UserClient userServiceClient;
 
     @Override
     @Transactional(readOnly = true)
     public CompilationDto getCompilationById(long id) {
-        CompilationDto compilationDto = compilationMapper
-                .toCompilationDto(compilationRepository.findById(id)
-                        .orElseThrow(() -> new NotFoundException("Подборка с " + id + "не найдена")));
-        return compilationDto;
+        Compilation compilation = compilationRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Подборка с " + id + "не найдена"));
+
+        Map<Long, User> users = loadUsersForEvents(compilation.getEvents());
+        return compilationMapper.toCompilationDto(compilation, users);
     }
 
     @Override
     public List<CompilationDto> getAllCompilations(Boolean pinned, int from, int size) {
         PageRequest page = PageRequest.of(from, size);
-        Page<Compilation> pageCompilations;
-        if (pinned != null) {
-            pageCompilations = compilationRepository.findAllByPinned(pinned, page);
-        } else {
-            pageCompilations = compilationRepository.findAll(page);
-        }
+        Page<Compilation> pageCompilations = pinned != null
+                ? compilationRepository.findAllByPinned(pinned, page)
+                : compilationRepository.findAll(page);
 
-        List<CompilationDto> compilationsDto = compilationMapper.toCompilationDto(pageCompilations);
-        log.info("получен список compilationsDto from = " + from + " size " + size);
+        List<Compilation> compilations = pageCompilations.getContent();
+        Map<Long, User> users = loadUsersForAllEvents(compilations);
+
+        List<CompilationDto> compilationsDto = compilationMapper.toCompilationDto(compilations, users);
+        log.info("получен список compilationsDto from = {} size {}", from, size);
 
         return compilationsDto;
+    }
+
+    private Map<Long, User> loadUsersForEvents(Set<Event> events) {
+        List<Long> userIds = events.stream()
+                .map(Event::getInitiatorId)
+                .collect(Collectors.toList());
+        return userServiceClient.getUsersWithIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+    }
+
+    private Map<Long, User> loadUsersForAllEvents(List<Compilation> compilations) {
+        List<Long> userIds = compilations.stream()
+                .flatMap(c -> c.getEvents().stream())
+                .map(Event::getInitiatorId)
+                .distinct()
+                .collect(Collectors.toList());
+        return userServiceClient.getUsersWithIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
     }
 }
