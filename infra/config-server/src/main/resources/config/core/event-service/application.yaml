@@ -1,35 +1,38 @@
 server:
-    port: 0
+  port: 0
+
+client:
+  url: http://stats-server:9090
 
 spring:
-    jpa:
-        hibernate:
-            ddl-auto: none
-        properties:
-            hibernate:
-                format_sql: true
-    sql:
-        init:
-            mode: always
-    datasource:
-        driverClassName: org.postgresql.Driver
-        url: jdbc:postgresql://localhost:6434/eventdb
-        username: postgres
-        password: 12345
-    cloud:
-        openfeign:
-            enabled: true
-            okhttp:
-                enabled: true
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+  sql:
+    init:
+      mode: always
+  output:
+    ansi:
+      enabled: ALWAYS
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/ewm-event
+    username: root
+    password: root
 
-discovery:
-    services:
-        stats-server-id: stat-server
-
-logging:
-    level:
-        org.springframework.orm.jpa: INFO
-        org.springframework.transaction: INFO
-        org.springframework.transaction.interceptor: INFO
-        org.springframework.orm.jpa.JpaTransactionManager: DEBUG
-        org.hibernate.SQL: DEBUG
+grpc:
+  client:
+    analyzer-client:
+      address: 'discovery:///analyzer'
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext
+    collector-client:
+      address: 'discovery:///collector'
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext

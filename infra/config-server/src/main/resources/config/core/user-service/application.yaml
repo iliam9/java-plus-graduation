@@ -1,31 +1,22 @@
 server:
-    port: 0
+  port: 0
 
 spring:
-    jpa:
-        hibernate:
-            ddl-auto: none
-        properties:
-            hibernate:
-                format_sql: true
-    sql:
-        init:
-            mode: always
-    datasource:
-        driverClassName: org.postgresql.Driver
-        url: jdbc:postgresql://localhost:6432/userdb
-        username: postgres
-        password: 12345
-    cloud:
-        openfeign:
-            enabled: true
-            okhttp:
-                enabled: true
-
-logging:
-    level:
-        org.springframework.orm.jpa: INFO
-        org.springframework.transaction: INFO
-        org.springframework.transaction.interceptor: INFO
-        org.springframework.orm.jpa.JpaTransactionManager: DEBUG
-        org.hibernate.SQL: DEBUG
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+  sql:
+    init:
+      mode: always
+  output:
+    ansi:
+      enabled: ALWAYS
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/ewm-user
+    username: root
+    password: root
