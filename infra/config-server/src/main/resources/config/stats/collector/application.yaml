@@ -1,16 +1,16 @@
-application:
-  name: collector
-
-server:
-  port: 0
-
 grpc:
   server:
-    port: 0
+    port: 9090
+    security:
+      enabled: false
+spring:
+  kafka:
+    producer:
+      properties:
+        bootstrap-servers: localhost:9092
+        key-serializer: org.apache.kafka.common.serialization.LongSerializer
+        value-serializer: ru.practicum.ewm.serializer.AvroSerializer
 
 collector:
-  kafka:
-    bootstrap-servers: localhost:9092
-    topic: stats.user-actions.v1
-    key-serializer: org.apache.kafka.common.serialization.VoidSerializer
-    value-serializer: ru.practicum.serializer.CollectorSerializer
+  topic:
+    user-action: stats.user-actions.v1

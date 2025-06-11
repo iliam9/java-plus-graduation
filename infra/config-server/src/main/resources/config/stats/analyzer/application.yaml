@@ -1,13 +1,8 @@
-application:
-  name: analyzer
-
-server:
-  port: 0
-
 grpc:
   server:
-    port: 0
-
+    port: 9091
+    security:
+      enabled: false
 spring:
   jpa:
     hibernate:
@@ -15,31 +10,38 @@ spring:
     properties:
       hibernate:
         format_sql: true
-    show-sql: true
+    show_sql: true
+
   sql:
     init:
       mode: always
+
   datasource:
-    url: jdbc:postgresql://localhost:65432/analyzer-db
-    driverClassName: "org.postgresql.Driver"
-    username: "analyzer-db"
-    password: "analyzer_pw"
+    driverClassName: org.postgresql.Driver
+    url:  jdbc:postgresql://localhost:5444/analyzer-db
+    username: analyzer
+    password: analyzer
+
+  kafka:
+    bootstrap-server: localhost:9092
+    consumer:
+      user-action-client-id: UserActionClient
+      user-action-group-id: UserActionGroup.Analyzer
+      key-deserializer: org.apache.kafka.common.serialization.LongDeserializer
+      value-deserializer: ru.practicum.ewm.deserializer.UserActionDeserializer
+      enable-auto-commit: false
+      poll-timeout: 1000
+      similarity-client-id: SimilarityClient
+      similarity-group-id: SimilarityGroup
+      similarity-deserializer: ru.practicum.ewm.deserializer.EventSimilarityDeserializer
 
 analyzer:
-  kafka:
-    bootstrap-servers: localhost:9092
-    event-similarity-consumer:
-      client-id: events-similarity-consumer
-      group-id: events-similarity-group
-      topic: stats.events-similarity.v1
-      value-deserializer: ru.practicum.deserializer.EventSimilarityDeserializer
-    user-actions-consumer:
-      client-id: user-actions-consumer
-      group-id: user-actions-group
-      topic: stats.user-actions.v1
-      value-deserializer: ru.practicum.deserializer.UserActionDeserializer
-    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-  score:
+  topic:
+    user-action: stats.user-actions.v1
+    events-similarity: stats.events-similarity.v1
+
+application:
+  action-weight:
     view: 0.4
-    registration: 0.8
-    like: 1
+    register: 0.8
+    like: 1.0

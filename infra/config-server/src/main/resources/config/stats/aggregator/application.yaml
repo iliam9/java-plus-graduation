@@ -1,23 +1,26 @@
-application:
-  name: aggregator
+spring:
+  kafka:
+    bootstrap-server: localhost:9092
 
-server:
-  port: 0
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: ru.practicum.ewm.serializer.AvroSerializer
+
+    consumer:
+      user-action-client-id: UserActionClient
+      user-action-group-id: UserActionGroup.Aggregator
+      key-deserializer: org.apache.kafka.common.serialization.LongDeserializer
+      value-deserializer: ru.practicum.ewm.deserializer.UserActionDeserializer
+      enable-auto-commit: false
+      poll-timeout: 1000
 
 aggregator:
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      client-id: user-action-consumer
-      group-id: aggregator-group
-      topic: stats.user-actions.v1
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: ru.practicum.serializer.UserActionDeserializer
-    producer:
-      topic: stats.events-similarity.v1
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: ru.practicum.serializer.EventSimilaritySerializer
-  score:
+  topic:
+    user-action: stats.user-actions.v1
+    events-similarity: stats.events-similarity.v1
+
+application:
+  action-weight:
     view: 0.4
-    registration: 0.8
-    like: 1
+    register: 0.8
+    like: 1.0
