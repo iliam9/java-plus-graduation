@@ -1,35 +1,46 @@
 server:
-    port: 0
+  port: 0
 
 spring:
-    jpa:
+  application:
+    name: event-service
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+        alphanumeric-ids:
+          enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
         hibernate:
-            ddl-auto: none
-        properties:
-            hibernate:
-                format_sql: true
-    sql:
-        init:
-            mode: always
-    datasource:
-        driverClassName: org.postgresql.Driver
-        url: jdbc:postgresql://localhost:6434/eventdb
-        username: postgres
-        password: 12345
-    cloud:
-        openfeign:
-            enabled: true
-            okhttp:
-                enabled: true
+          format_sql: true
+  sql:
+    init:
+      mode: always
+  datasource:
+    url: jdbc:postgresql://localhost:35432/event-db
+    driver-class-name: "org.postgresql.Driver"
+    username: "event-db"
+    password: "event_pw"
 
-discovery:
-    services:
-        stats-server-id: stat-server
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      slidingWindowSize: 50
+      failureRateThreshold: 50
 
-logging:
-    level:
-        org.springframework.orm.jpa: INFO
-        org.springframework.transaction: INFO
-        org.springframework.transaction.interceptor: INFO
-        org.springframework.orm.jpa.JpaTransactionManager: DEBUG
-        org.hibernate.SQL: DEBUG
+grpc:
+  client:
+    analyzer:
+      address: 'discovery:///analyzer'
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext
+    collector:
+      address: 'discovery:///collector'
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext

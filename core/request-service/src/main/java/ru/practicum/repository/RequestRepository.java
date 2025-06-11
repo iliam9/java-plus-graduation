@@ -2,34 +2,28 @@ package ru.practicum.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import ru.practicum.request.model.ParticipationRequest;
-
+import ru.practicum.model.Request;
+import ru.practicum.model.RequestStatus;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface RequestRepository extends JpaRepository<ParticipationRequest, Long> {
+public interface RequestRepository extends JpaRepository<Request, Long> {
 
-    // Все заявки конкретного пользователя
-    List<ParticipationRequest> findAllByRequesterId(Long requesterId);
+    List<Request> findByRequesterId(Long requesterId);
 
-    // Все заявки на конкретное событие
-    List<ParticipationRequest> findAllByEventId(Long eventId);
+    Optional<Request> findByIdAndRequesterId(Long id, Long requesterId);
 
-    // Метод для получения количества заявок с определенным eventId и статусом CONFIRMED
+    Optional<Request> findByEventId(Long eventId);
 
-    @Query("""
-            SELECT COUNT(pr)
-            FROM ParticipationRequest pr
-            WHERE pr.eventId = :eventId AND pr.status = 'CONFIRMED'
-            """)
-    Long countConfirmedRequestsByEventId(@Param("eventId") Long eventId);
+    List<Request> findByRequesterIdAndEventId(Long requesterId, Long eventId);
 
-    boolean existsByRequesterIdAndEventId(Long requesterId, Long eventId);
+    Optional<Request> findByIdAndEventId(Long id, Long eventId);
 
-    Optional<ParticipationRequest> findByIdAndRequesterId(Long requestId, Long requesterId);
+    @Query("SELECT COUNT(r) FROM Request r WHERE r.eventId = :eventId and r.status = :status")
+    long countRequestsByEventIdAndStatus(Long eventId, RequestStatus status);
 
-    @Query("SELECT e.views FROM Event e WHERE e.id = :eventId")
-    Long getViewsForEvent(@Param("eventId") Long eventId);
+    Optional<Request> findByRequesterIdAndEventIdAndStatus(long authorId, long eventId, RequestStatus requestStatus);
+
+    List<Request> findAllByEventIdInAndStatus(List<Long> idsList, RequestStatus status);
 }

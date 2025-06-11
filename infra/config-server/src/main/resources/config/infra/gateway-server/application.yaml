@@ -1,20 +1,39 @@
-server:
-    port: 8080
+application:
+  name: gateway
 
 spring:
-    cloud:
-        gateway:
-            discovery.locator.enabled: true
-            routes:
-                -   id: user_service
-                    uri: lb://user-service
-                    predicates:
-                        - Path=/admin/users/**
-                -   id: request_service_route
-                    uri: lb://request-service
-                    predicates:
-                        - Path=/users/*/requests/**
-                -   id: event-service
-                    uri: lb://event-service
-                    predicates:
-                        - Path=/admin/events/**, /users/*/events/**, /users/*/events/*/requests/**, /events/**, /categories/**, /admin/categories/**, /admin/compilations/**, /compilations/**, /users/*/events/*/comments/**, /events/*/comments/**
+  cloud:
+    gateway:
+      # для работы Gateway должен использовать Discovery Service
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: user_service
+          uri: lb://user-service
+          predicates:
+            - Path=/admin/users/**
+        - id: request_service
+          uri: lb://request-service
+          predicates:
+            - Path=/users/{userId}/events/{eventId}/requests/**,/users/{userId}/requests/**
+        - id: category_service
+          uri: lb://category-service
+          predicates:
+            - Path=/admin/categories/**,/categories/**
+        - id: event_service
+          uri: lb://event-service
+          predicates:
+            - Path=/**
+
+server:
+  port: 8080
+
+management:
+  endpoint:
+    gateway:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"

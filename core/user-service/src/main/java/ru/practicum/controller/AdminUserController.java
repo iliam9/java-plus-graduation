@@ -1,50 +1,58 @@
 package ru.practicum.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.dto.user.NewUserRequest;
-import ru.practicum.dto.user.UserDto;
-import ru.practicum.service.AdminUserService;
-import ru.practicum.validation.CreateGroup;
+import ru.practicum.dto.users.UserDto;
+import ru.practicum.service.UserService;
 
 import java.util.List;
 
-@Slf4j
-@RestController
 @RequiredArgsConstructor
-@RequestMapping("/admin/users")
-@Validated
+@RestController
+@RequestMapping(path = "/admin/users")
 public class AdminUserController {
 
-    private final AdminUserService adminUserService;
+    private final UserService userService;
 
+
+    /**
+     * Получить список пользователей по их идентификаторам.
+     *
+     * @param ids  список идентификаторов запрашиваемых пользователей
+     * @param from смещение от начала возвращаемого списка пользователей
+     * @param size размер возвращаемого списка пользователей
+     * @return список пользователей
+     */
     @GetMapping
-    public List<UserDto> getUsersByParams(@RequestParam(required = false) List<Long> ids,
-                                          @RequestParam(defaultValue = "0") Integer from,
-                                          @RequestParam(defaultValue = "10") Integer size) {
-        log.info("Поступил запрос Get /admin/users на получение List<UserDto> с параметрами ids = {}, from = {}, size = {}", ids, from, size);
-        List<UserDto> response = adminUserService.getUsersByParams(ids, from, size);
-        log.info("Сформирован ответ Get /admin/users с телом: {}", response);
-        return response;
+    public List<UserDto> getUsers(@RequestParam(required = false) List<Long> ids,
+                                  @RequestParam(defaultValue = "0") int from,
+                                  @RequestParam(defaultValue = "10") int size) {
+        return userService.getUsers(ids, from, size);
     }
 
+    /**
+     * Добавить нового пользователя в систему.
+     *
+     * @param userDto представление добавляемого пользователя
+     * @return представление добавленного пользователя
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public UserDto createNewUser(@Validated(CreateGroup.class) @RequestBody NewUserRequest newUserRequest) {
-        log.info("Поступил запрос Post /admin/users на создание User с телом {}", newUserRequest);
-        UserDto response = adminUserService.createNewUser(newUserRequest);
-        log.info("Сформирован ответ Post /admin/users с телом: {}", response);
-        return response;
+    public UserDto createUser(@Valid @RequestBody UserDto userDto) {
+        return userService.createUser(userDto);
     }
 
-    @DeleteMapping("/{id}")
+    /**
+     * Удалить пользователя.
+     *
+     * @param id идентификатор удаляемого пользователя
+     */
+    @DeleteMapping(path = "/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteById(@PathVariable Long id) {
-        log.info("Поступил запрос Delete /admin/users/{} на удаление User с id = {}", id, id);
-        adminUserService.deleteUserById(id);
-        log.info("Выполнен запрос Delete /admin/users/{} на удаление User с id = {}", id, id);
+    public void deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
     }
+
 }

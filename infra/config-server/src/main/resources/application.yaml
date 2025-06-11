@@ -1,26 +1,25 @@
 server:
-    port: 0
+  port: 0
 
 spring:
-    application:
-        name: config-server
-    profiles:
-        active: native
-    cloud:
-        config:
-            server:
-                native:
-                    searchLocations:
-                        - classpath:config/core/{application}
-                        - classpath:config/infra/{application}
-                        - classpath:config/stats/{application}
+  application:
+    name: config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          searchLocations:
+            - classpath:config/core/{application}
+            - classpath:config/stats/{application}
+            - classpath:config/infra/{application}
+      fail-fast: true
+      retry:
+        use-random-policy: true
+        max-interval: 6000
 
 eureka:
-    client:
-        serviceUrl:
-            defaultZone: http://localhost:8761/eureka/
-    instance:
-        preferIpAddress: true
-        hostname: localhost
-        instance-id: "${spring.application.name}:${random.value}"
-        leaseRenewalIntervalInSeconds: 10
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka

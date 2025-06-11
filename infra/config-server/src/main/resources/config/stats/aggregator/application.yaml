@@ -1,0 +1,23 @@
+application:
+  name: aggregator
+
+server:
+  port: 0
+
+aggregator:
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      client-id: user-action-consumer
+      group-id: aggregator-group
+      topic: stats.user-actions.v1
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: ru.practicum.serializer.UserActionDeserializer
+    producer:
+      topic: stats.events-similarity.v1
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: ru.practicum.serializer.EventSimilaritySerializer
+  score:
+    view: 0.4
+    registration: 0.8
+    like: 1

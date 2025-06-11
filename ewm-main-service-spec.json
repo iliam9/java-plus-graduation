@@ -127,7 +127,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -184,7 +184,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -324,7 +324,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -364,7 +364,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -427,7 +427,7 @@
               "type": "array",
               "items": {
                 "type": "integer",
-                "format": "int64"
+                "format": "int32"
               }
             }
           },
@@ -452,7 +452,7 @@
               "type": "array",
               "items": {
                 "type": "integer",
-                "format": "int64"
+                "format": "int32"
               }
             }
           },
@@ -547,7 +547,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -626,7 +626,7 @@
               "type": "array",
               "items": {
                 "type": "integer",
-                "format": "int64"
+                "format": "int32"
               }
             }
           },
@@ -764,7 +764,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -873,7 +873,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -1014,7 +1014,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -1093,7 +1093,7 @@
               "type": "array",
               "items": {
                 "type": "integer",
-                "format": "int64"
+                "format": "int32"
               }
             }
           },
@@ -1220,7 +1220,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -1286,7 +1286,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           },
           {
@@ -1360,7 +1360,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -1437,7 +1437,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           },
           {
@@ -1447,7 +1447,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -1511,7 +1511,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           },
           {
@@ -1521,7 +1521,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -1614,7 +1614,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           },
           {
@@ -1624,7 +1624,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -1675,7 +1675,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           },
           {
@@ -1685,7 +1685,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -1778,7 +1778,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -1845,7 +1845,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           },
           {
@@ -1855,7 +1855,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -1936,7 +1936,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           },
           {
@@ -1946,7 +1946,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int32"
             }
           }
         ],
@@ -2102,7 +2102,7 @@
           "id": {
             "type": "integer",
             "description": "Идентификатор категории",
-            "format": "int64",
+            "format": "int32",
             "readOnly": true,
             "example": 1
           },
@@ -2171,7 +2171,7 @@
           "id": {
             "type": "integer",
             "description": "Идентификатор",
-            "format": "int64",
+            "format": "int32",
             "example": 1
           },
           "pinned": {
@@ -2210,7 +2210,7 @@
           "confirmedRequests": {
             "type": "integer",
             "description": "Количество одобренных заявок на участие в данном событии",
-            "format": "int64",
+            "format": "int32",
             "example": 5
           },
           "createdOn": {
@@ -2231,7 +2231,7 @@
           "id": {
             "type": "integer",
             "description": "Идентификатор",
-            "format": "int64",
+            "format": "int32",
             "example": 1
           },
           "initiator": {
@@ -2281,7 +2281,7 @@
           "views": {
             "type": "integer",
             "description": "Количество просмотрев события",
-            "format": "int64",
+            "format": "int32",
             "example": 999
           }
         }
@@ -2300,7 +2300,7 @@
             "items": {
               "type": "integer",
               "description": "Идентификаторы запросов на участие в событии текущего пользователя",
-              "format": "int64"
+              "format": "int32"
             }
           },
           "status": {
@@ -2355,7 +2355,7 @@
           "confirmedRequests": {
             "type": "integer",
             "description": "Количество одобренных заявок на участие в данном событии",
-            "format": "int64",
+            "format": "int32",
             "example": 5
           },
           "eventDate": {
@@ -2366,7 +2366,7 @@
           "id": {
             "type": "integer",
             "description": "Идентификатор",
-            "format": "int64",
+            "format": "int32",
             "example": 1
           },
           "initiator": {
@@ -2385,7 +2385,7 @@
           "views": {
             "type": "integer",
             "description": "Количество просмотрев события",
-            "format": "int64",
+            "format": "int32",
             "example": 999
           }
         },
@@ -2479,7 +2479,7 @@
             "items": {
               "type": "integer",
               "description": "Список идентификаторов событий входящих в подборку",
-              "format": "int64"
+              "format": "int32"
             }
           },
           "pinned": {
@@ -2519,7 +2519,7 @@
           "category": {
             "type": "integer",
             "description": "id категории к которой относится событие",
-            "format": "int64",
+            "format": "int32",
             "example": 2
           },
           "description": {
@@ -2601,19 +2601,19 @@
           "event": {
             "type": "integer",
             "description": "Идентификатор события",
-            "format": "int64",
+            "format": "int32",
             "example": 1
           },
           "id": {
             "type": "integer",
             "description": "Идентификатор заявки",
-            "format": "int64",
+            "format": "int32",
             "example": 3
           },
           "requester": {
             "type": "integer",
             "description": "Идентификатор пользователя, отправившего заявку",
-            "format": "int64",
+            "format": "int32",
             "example": 2
           },
           "status": {
@@ -2634,7 +2634,7 @@
             "items": {
               "type": "integer",
               "description": "Список id событий подборки для полной замены текущего списка",
-              "format": "int64"
+              "format": "int32"
             }
           },
           "pinned": {
@@ -2665,7 +2665,7 @@
           "category": {
             "type": "integer",
             "description": "Новая категория",
-            "format": "int64",
+            "format": "int32",
             "example": 3
           },
           "description": {
@@ -2730,7 +2730,7 @@
           "category": {
             "type": "integer",
             "description": "Новая категория",
-            "format": "int64",
+            "format": "int32",
             "example": 3
           },
           "description": {
@@ -2798,7 +2798,7 @@
           "id": {
             "type": "integer",
             "description": "Идентификатор",
-            "format": "int64",
+            "format": "int32",
             "readOnly": true,
             "example": 1
           },
@@ -2820,7 +2820,7 @@
           "id": {
             "type": "integer",
             "description": "Идентификатор",
-            "format": "int64",
+            "format": "int32",
             "example": 3
           },
           "name": {

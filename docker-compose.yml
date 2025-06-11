@@ -1,75 +1,215 @@
 services:
-  stats-db:
-    image: postgres:16.1
-    container_name: stats-db
+  user-service:
+    build: ./user-service
+    image: user-service
+    restart: on-failure
+    container_name: user-service
     ports:
-      - "6541:5432"
+      - "8080:8080"
+    depends_on:
+      - user-db
     environment:
-      - POSTGRES_DB=statsdb
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=12345
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-      timeout: 5s
-      interval: 5s
-      retries: 10
-
-  ewm-db:
-    image: postgres:16.1
-    container_name: main-db
-    ports:
-      - "6542:5432"
-    environment:
-      - POSTGRES_DB=maindb
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=12345
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-      timeout: 5s
-      interval: 5s
-      retries: 10
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://user-db:5432/user-db
+      - SPRING_DATASOURCE_USERNAME=user-db
+      - SPRING_DATASOURCE_PASSWORD=user_pw
 
   user-db:
-      image: postgres:16.1
-      container_name: user-db
-      ports:
-          - "6432:5432"
-      environment:
-          - POSTGRES_DB=userdb
-          - POSTGRES_USER=postgres
-          - POSTGRES_PASSWORD=12345
-      healthcheck:
-          test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-          timeout: 5s
-          interval: 5s
-          retries: 10
+    image: postgres:16.1
+    container_name: user-db
+    ports:
+      - "25432:5432"
+    volumes:
+      - userData:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=user-db
+      - POSTGRES_USER=user-db
+      - POSTGRES_PASSWORD=user_pw
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10
 
-  request-db:
-      image: postgres:16.1
-      container_name: request-db
-      ports:
-          - "6433:5432"
-      environment:
-          - POSTGRES_DB=requestdb
-          - POSTGRES_USER=postgres
-          - POSTGRES_PASSWORD=12345
-      healthcheck:
-          test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-          timeout: 5s
-          interval: 5s
-          retries: 10
+  event-service:
+    build: ./event-service
+    image: event-service
+    restart: on-failure
+    container_name: event-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - event-db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://event-db:5432/event-db
+      - SPRING_DATASOURCE_USERNAME=event-db
+      - SPRING_DATASOURCE_PASSWORD=event_pw
 
   event-db:
-      image: postgres:16.1
-      container_name: event-db
-      ports:
-          - "6434:5432"
-      environment:
-          - POSTGRES_DB=eventdb
-          - POSTGRES_USER=postgres
-          - POSTGRES_PASSWORD=12345
-      healthcheck:
-          test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-          timeout: 5s
-          interval: 5s
-          retries: 10
+    image: postgres:16.1
+    container_name: event-db
+    ports:
+      - "35432:5432"
+    volumes:
+      - eventData:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=event-db
+      - POSTGRES_USER=event-db
+      - POSTGRES_PASSWORD=event_pw
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10
+
+  request-service:
+    build: ./request-service
+    image: request-service
+    restart: on-failure
+    container_name: request-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - request-db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://request-db:5432/request-db
+      - SPRING_DATASOURCE_USERNAME=request-db
+      - SPRING_DATASOURCE_PASSWORD=request_pw
+
+  request-db:
+    image: postgres:16.1
+    container_name: request-db
+    ports:
+      - "45432:5432"
+    volumes:
+      - requestData:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=request-db
+      - POSTGRES_USER=request-db
+      - POSTGRES_PASSWORD=request_pw
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10
+
+  category-service:
+    build: ./category-service
+    image: category-service
+    restart: on-failure
+    container_name: category-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      - category-db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://category-db:5432/category-db
+      - SPRING_DATASOURCE_USERNAME=category-db
+      - SPRING_DATASOURCE_PASSWORD=category_pw
+
+  category-db:
+    image: postgres:16.1
+    container_name: category-db
+    ports:
+      - "55432:5432"
+    volumes:
+      - categoryData:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=category-db
+      - POSTGRES_USER=category-db
+      - POSTGRES_PASSWORD=category_pw
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10
+
+  collector:
+    build: ./stat/collector
+    image: collector
+    restart: on-failure
+    container_name: collector
+    ports:
+      - "8084:8084"
+
+  aggregator:
+    build: ./stat/aggregator
+    image: aggregator
+    restart: on-failure
+    container_name: aggregator
+    ports:
+      - "8085:8085"
+
+  analyzer:
+    build: ./stat/analyzer
+    image: analyzer
+    restart: on-failure
+    container_name: analyzer
+    ports:
+      - "8086:8086"
+    depends_on:
+      - analyzer-db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://analyzer-db:5432/analyzer-db
+      - SPRING_DATASOURCE_USERNAME=analyzer-db
+      - SPRING_DATASOURCE_PASSWORD=analyzer_pw
+
+  analyzer-db:
+    image: postgres:16.1
+    container_name: analyzer-db
+    ports:
+      - "65432:5432"
+    volumes:
+      - analyzerData:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=analyzer-db
+      - POSTGRES_USER=analyzer-db
+      - POSTGRES_PASSWORD=analyzer_pw
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10
+
+  kafka:
+    image: confluentinc/confluent-local:7.4.3
+    hostname: kafka
+    container_name: kafka
+    ports:
+      - "9092:9092" # for client connections
+      - "9101:9101" # JMX
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      CLUSTER_ID: 'K0EA9p0yEe6MkAAAAkKsEg'
+
+  kafka-init-topics:
+    image: confluentinc/confluent-local:7.4.3
+    container_name: kafka-init-topics
+    depends_on:
+      - kafka
+    command: "bash -c \
+                'kafka-topics --create --stats.user-actions.v1 \
+                             --partitions 1 --replication-factor 1 --if-not-exists \
+                             --bootstrap-server kafka:29092 && \
+                kafka-topics --create --stats.events-similarity.v1 \
+                             --partitions 1 --replication-factor 1 --if-not-exists \
+                             --bootstrap-server kafka:29092'"
+    init: true
+
+volumes:
+  userData:
+    driver: local
+  eventData:
+    driver: local
+  requestData:
+    driver: local
+  categoryData:
+    driver: local
+  analyzerData:
+    driver: local
