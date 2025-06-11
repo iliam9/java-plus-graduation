@@ -12,8 +12,8 @@ spring:
       retry:
         useRandomPolicy: true
         max-interval: 6000
-
 eureka:
   client:
+    registerWithEureka: true
     serviceUrl:
       defaultZone: http://localhost:8761/eureka/

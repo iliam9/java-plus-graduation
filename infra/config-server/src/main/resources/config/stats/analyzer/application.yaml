@@ -1,47 +1,28 @@
-grpc:
-  server:
-    port: 9091
-    security:
-      enabled: false
+grpc.server.port: 0
 spring:
   jpa:
     hibernate:
       ddl-auto: none
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
-    show_sql: true
-
+        jdbc.time_zone: UTC
   sql:
     init:
       mode: always
-
+  main:
+    banner-mode: off
+    log-startup-info: false
   datasource:
     driverClassName: org.postgresql.Driver
-    url:  jdbc:postgresql://localhost:5444/analyzer-db
-    username: analyzer
-    password: analyzer
+    url: jdbc:postgresql://localhost:6432/explore-stats
+    #driverClassName: org.h2.Driver
+    #url: jdbc:h2:file:./db/stats
+    username: explore-stats
+    password: explore-stats
 
-  kafka:
-    bootstrap-server: localhost:9092
-    consumer:
-      user-action-client-id: UserActionClient
-      user-action-group-id: UserActionGroup.Analyzer
-      key-deserializer: org.apache.kafka.common.serialization.LongDeserializer
-      value-deserializer: ru.practicum.ewm.deserializer.UserActionDeserializer
-      enable-auto-commit: false
-      poll-timeout: 1000
-      similarity-client-id: SimilarityClient
-      similarity-group-id: SimilarityGroup
-      similarity-deserializer: ru.practicum.ewm.deserializer.EventSimilarityDeserializer
-
-analyzer:
-  topic:
-    user-action: stats.user-actions.v1
-    events-similarity: stats.events-similarity.v1
-
-application:
-  action-weight:
-    view: 0.4
-    register: 0.8
-    like: 1.0
+kafka.constants:
+  url: "localhost:9092"
+  action: "stats.user-actions.v1"
+  similarity: "stats.events-similarity.v1"

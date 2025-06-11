@@ -1,288 +1,59 @@
 services:
-  discovery-server:
-    build: infra/discovery-server
-    container_name: discovery-server
-    ports:
-      - "8761:8761"
-    healthcheck:
-      test: "curl --fail --silent discovery-server:8761/actuator/health | grep UP || exit 1"
-      timeout: 5s
-      interval: 20s
-      retries: 5
-
-  config-server:
-    build: infra/config-server
-    container_name: config-server
-    depends_on:
-      discovery-server:
-        condition: service_healthy
-    environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-      - SERVER_PORT=9091
-    healthcheck:
-      test: "curl --fail --silent config-server:9091/actuator/health | grep UP || exit 1"
-      timeout: 5s
-      interval: 30s
-      retries: 5
-
-  gateway-server:
-    build: infra/gateway-server
-    container_name: gateway-server
-    ports:
-      - "8080:8080"
-    depends_on:
-      config-server:
-        condition: service_healthy
-      user-service:
-        condition: service_healthy
-      event-service:
-        condition: service_healthy
-      request-service:
-        condition: service_healthy
-      comment-service:
-        condition: service_healthy
-    environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-
   stats-server:
     build: stats/stats-server
+    image: stats-server
     container_name: stats-server
     ports:
       - "9090:9090"
     depends_on:
-      stats-db:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
+      - stats-db
     environment:
-#      - SPRING_DATASOURCE_URL=jdbc:postgresql://stats-db:5432/ewm-stats
-#      - SPRING_DATASOURCE_USERNAME=root
-#      - SPRING_DATASOURCE_PASSWORD=root
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-      - SERVER_PORT=9090
-    healthcheck:
-      test: "curl --fail --silent localhost:9090/actuator/health | grep UP || exit 1"
-      timeout: 5s
-      interval: 15s
-      retries: 10
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://explore-postgres-stats:5432/explore-stats
+      - SPRING_DATASOURCE_USERNAME=explore-stats
+      - SPRING_DATASOURCE_PASSWORD=explore-stats
 
   stats-db:
     image: postgres:16.1
-    container_name: stats-db
+    container_name: explore-postgres-stats
     ports:
-      - "7432:5432"
+      - "6432:5432"
     environment:
-      - POSTGRES_PASSWORD=root
-      - POSTGRES_USER=root
-      - POSTGRES_DB=ewm-stats
+      - POSTGRES_PASSWORD=explore-stats
+      - POSTGRES_USER=explore-stats
+      - POSTGRES_DB=explore-stats
     healthcheck:
       test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
       timeout: 5s
-      interval: 10s
-      retries: 15
-
-#  ewm-service:
-#    build: core/main-service
-#    container_name: ewm-main-service
-#    depends_on:
-#      ewm-db:
-#        condition: service_healthy
-#      config-server:
-#        condition: service_healthy
-#      stats-server:
-#        condition: service_healthy
-#    networks:
-#      - ewm-net
-#    environment:
-#      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/ewm-main
-#      - SPRING_DATASOURCE_USERNAME=root
-#      - SPRING_DATASOURCE_PASSWORD=root
-#      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-#      - SERVER_PORT=8081
-#    healthcheck:
-#      test: "curl --fail --silent localhost:8081/actuator/health | grep UP || exit 1"
-#      timeout: 5s
-#      interval: 25s
-#      retries: 10
-
-#  ewm-db:
-#    image: postgres:16.1
-#    container_name: postgres-ewm-main-db
-#    ports:
-#      - "8432:5432"
-#    networks:
-#      - ewm-net
-#    environment:
-#      - POSTGRES_PASSWORD=main
-#      - POSTGRES_USER=main
-#      - POSTGRES_DB=ewm-main-db
-#    healthcheck:
-#      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-#      timeout: 5s
-#      interval: 10s
-#      retries: 15
-
-  user-db:
-    image: postgres:16.1
-    container_name: user-db
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_PASSWORD=user
-      - POSTGRES_USER=user
-      - POSTGRES_DB=user-db
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-      timeout: 5s
-      interval: 10s
-      retries: 15
-
-  event-db:
-    image: postgres:16.1
-    container_name: event-db
-    ports:
-      - "4432:5432"
-    environment:
-      - POSTGRES_PASSWORD=event
-      - POSTGRES_USER=event
-      - POSTGRES_DB=event-db
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-      timeout: 5s
-      interval: 10s
-      retries: 15
-
-  request-db:
-    image: postgres:16.1
-    container_name: request-db
-    ports:
-      - "3432:5432"
-    environment:
-      - POSTGRES_PASSWORD=request
-      - POSTGRES_USER=request
-      - POSTGRES_DB=request-db
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-      timeout: 5s
-      interval: 10s
-      retries: 15
-
-  comment-db:
-    image: postgres:16.1
-    container_name: comment-db
-    ports:
-      - "2432:5432"
-    environment:
-      - POSTGRES_PASSWORD=comment
-      - POSTGRES_USER=comment
-      - POSTGRES_DB=comment-db
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-      timeout: 5s
-      interval: 10s
-      retries: 15
-
-  analyzer-db:
-    image: postgres:16.1
-    container_name: analyzer-db
-    ports:
-      - "5444:5432"
-    environment:
-      - POSTGRES_PASSWORD=analyzer
-      - POSTGRES_USER=analyzer
-      - POSTGRES_DB=analyzer-db
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-      timeout: 5s
-      interval: 10s
-      retries: 15
-
-  user-service:
-    build: core/user-service
-    container_name: user-service
-    ports:
-      - "8081:8081"
-    depends_on:
-      user-db:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-    environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-      - SERVER_PORT=8081
-    healthcheck:
-      test: "curl --fail --silent localhost:8081/actuator/health | grep UP || exit 1"
-      timeout: 5s
-      interval: 25s
+      interval: 5s
       retries: 10
 
-  event-service:
-    build: core/event-service
-    container_name: event-service
+  ewm-service:
+    build: main-server
+    image: main-server
+    container_name: ewm-service
     ports:
-      - "8082:8082"
+      - "8080:8080"
     depends_on:
-      event-db:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-      stats-db:
-        condition: service_healthy
+      - stats-db
     environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-      - SERVER_PORT=8082
-    healthcheck:
-      test: "curl --fail --silent localhost:8082/actuator/health | grep UP || exit 1"
-      timeout: 5s
-      interval: 25s
-      retries: 10
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://explore-postgres-main:5432/explore-main
+      - SPRING_DATASOURCE_USERNAME=explore-main
+      - SPRING_DATASOURCE_PASSWORD=explore-main
 
-  request-service:
-    build: core/request-service
-    container_name: request-service
+  main-db:
+    image: postgres:16.1
+    container_name: explore-postgres-main
     ports:
-      - "8083:8083"
-    depends_on:
-      request-db:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
+      - "6433:5432"
     environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-      - SERVER_PORT=8083
+      - POSTGRES_PASSWORD=explore-main
+      - POSTGRES_USER=explore-main
+      - POSTGRES_DB=explore-main
     healthcheck:
-      test: "curl --fail --silent localhost:8083/actuator/health | grep UP || exit 1"
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
       timeout: 5s
-      interval: 25s
+      interval: 5s
       retries: 10
-
-  comment-service:
-    build: core/comment-service
-    container_name: comment-service
-    ports:
-      - "8084:8084"
-    depends_on:
-      comment-db:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-    environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-      - SERVER_PORT=8084
-    healthcheck:
-      test: "curl --fail --silent localhost:8084/actuator/health | grep UP || exit 1"
-      timeout: 5s
-      interval: 25s
-      retries: 10
-
   kafka:
     image: confluentinc/confluent-local:7.4.3
     hostname: kafka
@@ -290,10 +61,6 @@ services:
     ports:
       - "9092:9092" # for client connections
       - "9101:9101" # JMX
-      - "29092:29092"
-      - "8082:8082"
-#    networks:
-#      - net
     restart: unless-stopped
     environment:
       KAFKA_NODE_ID: 1
@@ -308,19 +75,13 @@ services:
   kafka-init-topics:
     image: confluentinc/confluent-local:7.4.3
     container_name: kafka-init-topics
-#    networks:
-#      - net
     depends_on:
       - kafka
     command: "bash -c \
-                  'kafka-topics --create --topic stats.user-actions.v1 \
-                               --partitions 1 --replication-factor 1 --if-not-exists \
-                               --bootstrap-server kafka:29092 && \
-                  kafka-topics --create --topic stats.events-similarity.v1 \
-                               --partitions 1 --replication-factor 1 --if-not-exists \
-                               --bootstrap-server kafka:29092'"
+                'kafka-topics --create --topic stats.user-actions.v1 \
+                             --partitions 1 --replication-factor 1 --if-not-exists \
+                             --bootstrap-server kafka:29092 && \
+                kafka-topics --create --topic stats.events-similarity.v1 \
+                             --partitions 1 --replication-factor 1 --if-not-exists \
+                             --bootstrap-server kafka:29092 && \'"
     init: true
-
-#networks:
-#  net:
-#    driver: bridge
