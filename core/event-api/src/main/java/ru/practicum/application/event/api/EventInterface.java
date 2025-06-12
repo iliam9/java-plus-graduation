@@ -3,9 +3,7 @@ package ru.practicum.application.event.api;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import ru.practicum.application.api.dto.event.EventFullDto;
 import ru.practicum.application.api.dto.event.EventShortDto;
 import ru.practicum.application.api.exception.NotFoundException;
@@ -15,7 +13,11 @@ import java.util.List;
 
 public interface EventInterface {
     @GetMapping("/events/{id}")
-    EventFullDto getEventById(@PathVariable Long id, HttpServletRequest request) throws NotFoundException;
+    EventFullDto getEventById(
+            @PathVariable Long id,
+            @RequestHeader("X-EWM-USER-ID") Long userId,
+            HttpServletRequest request
+    ) throws NotFoundException;
 
     @GetMapping("/events")
     List<EventShortDto> getFilteredEvents(
@@ -30,4 +32,10 @@ public interface EventInterface {
             @Positive @RequestParam(defaultValue = "10") Integer count,
             HttpServletRequest request
     ) throws ValidationException;
+
+    @GetMapping("/events/recommendation")
+    List<EventFullDto> getRecommendations(@RequestHeader("X-EWM-USER-ID") Long userId);
+
+    @PutMapping("/events/{eventId}/like")
+    void likeEvent(@PathVariable Long eventId, @RequestHeader("X-EWM-USER-ID") Long userId) throws ValidationException;
 }

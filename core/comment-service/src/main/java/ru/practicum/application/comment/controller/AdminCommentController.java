@@ -3,13 +3,12 @@ package ru.practicum.application.comment.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ru.practicum.application.api.dto.comment.CommentDto;
 import ru.practicum.application.api.exception.NotFoundException;
 import ru.practicum.application.api.request.comment.GetCommentsAdminRequest;
-import ru.practicum.application.comment.api.AdminCommentInterface;
 import ru.practicum.application.comment.service.CommentService;
+import ru.practicum.application.comment.api.AdminCommentInterface;
 
 import java.util.Collection;
 

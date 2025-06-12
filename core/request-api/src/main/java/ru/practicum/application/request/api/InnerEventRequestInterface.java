@@ -10,10 +10,12 @@ import java.util.List;
 public interface InnerEventRequestInterface {
     @GetMapping("/inner/request/{eventId}/status/count")
     Long countByEventAndStatuses(@PathVariable Long eventId, @RequestParam List<String> statuses);
-
     @GetMapping("/inner/request/events/{status}")
     List<EventRequestDto> getByEventAndStatus(@RequestParam List<Long> eventId, @PathVariable String status);
 
     @GetMapping("/inner/request/events")
     List<EventRequestDto> findByEventIds(@RequestParam List<Long> id);
+
+    @GetMapping("/inner/{userId}/take/{eventId}")
+    boolean isUserTakePart(@PathVariable Long userId, @PathVariable Long eventId);
 }

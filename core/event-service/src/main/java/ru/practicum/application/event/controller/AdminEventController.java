@@ -10,8 +10,8 @@ import ru.practicum.application.api.exception.NotFoundException;
 import ru.practicum.application.api.exception.ValidationException;
 import ru.practicum.application.api.exception.WrongDataException;
 import ru.practicum.application.api.request.event.UpdateEventAdminRequest;
-import ru.practicum.application.event.api.AdminEventInterface;
 import ru.practicum.application.event.service.AdminEventService;
+import ru.practicum.application.event.api.AdminEventInterface;
 
 import java.time.LocalDateTime;
 import java.util.List;
