@@ -1,5 +1,12 @@
-kafka.constants:
-  url: "localhost:9092"
-  topic: "stats.user-actions.v1"
-grpc.server.port: 0
-#server.port: 0
+server:
+  port: 0
+
+grpc:
+  server:
+    port: 0
+
+kafka:
+  url: ${KAFKA_URL:http://localhost:9092}
+
+user:
+  topic: stats.user-actions.v1

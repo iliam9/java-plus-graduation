@@ -1,42 +1,36 @@
 server:
   port: 0
+
 stats-server:
-  url: "http://stats-server"
+  name: stats-server
+
 spring:
+  application:
+    name: user-service
   jpa:
+    hibernate:
+      ddl-auto: none
     properties:
       hibernate:
         format_sql: true
-        jdbc.time_zone: UTC
-    database: POSTGRESQL
-    #database: H2
-    show-sql: true
   sql:
     init:
       mode: always
-  jackson:
-    serialization:
-      fail-on-empty-beans: false
-  main:
-    banner-mode: off
-    log-startup-info: false
   datasource:
     driverClassName: org.postgresql.Driver
-    url: jdbc:postgresql://main-db:5432/explore-main
-    #driverClassName: org.h2.Driver
-    #url: jdbc:h2:file:./db/user
-    username: explore-main
-    password: explore-main
+    url: jdbc:postgresql://localhost:6543/user_db
+    username: user_user
+    password: password4
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+
 logging:
   level:
     org:
-      zalando.logbook: TRACE
-      springframework:
+      hibernate:
+        SQL: DEBUG
         orm:
-          jpa: INFO
-        transaction: INFO
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
+          jdbc:
+            bind: trace

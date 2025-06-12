@@ -1,59 +1,26 @@
 services:
-  stats-server:
-    build: stats/stats-server
-    image: stats-server
-    container_name: stats-server
+  ewm-db:
+    image: postgres:16.1
+    container_name: postgres-main-db
     ports:
-      - "9090:9090"
-    depends_on:
-      - stats-db
+      - "6543:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://explore-postgres-stats:5432/explore-stats
-      - SPRING_DATASOURCE_USERNAME=explore-stats
-      - SPRING_DATASOURCE_PASSWORD=explore-stats
+      - POSTGRES_PASSWORD=main
+      - POSTGRES_USER=main
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
 
   stats-db:
     image: postgres:16.1
-    container_name: explore-postgres-stats
+    container_name: postgres-stats-db
     ports:
-      - "6432:5432"
+      - "6542:5432"
     environment:
-      - POSTGRES_PASSWORD=explore-stats
-      - POSTGRES_USER=explore-stats
-      - POSTGRES_DB=explore-stats
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-      timeout: 5s
-      interval: 5s
-      retries: 10
+      - POSTGRES_PASSWORD=stat
+      - POSTGRES_USER=stat
+      - POSTGRES_DB=stats
 
-  ewm-service:
-    build: main-server
-    image: main-server
-    container_name: ewm-service
-    ports:
-      - "8080:8080"
-    depends_on:
-      - stats-db
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://explore-postgres-main:5432/explore-main
-      - SPRING_DATASOURCE_USERNAME=explore-main
-      - SPRING_DATASOURCE_PASSWORD=explore-main
-
-  main-db:
-    image: postgres:16.1
-    container_name: explore-postgres-main
-    ports:
-      - "6433:5432"
-    environment:
-      - POSTGRES_PASSWORD=explore-main
-      - POSTGRES_USER=explore-main
-      - POSTGRES_DB=explore-main
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-      timeout: 5s
-      interval: 5s
-      retries: 10
   kafka:
     image: confluentinc/confluent-local:7.4.3
     hostname: kafka
@@ -83,5 +50,72 @@ services:
                              --bootstrap-server kafka:29092 && \
                 kafka-topics --create --topic stats.events-similarity.v1 \
                              --partitions 1 --replication-factor 1 --if-not-exists \
-                             --bootstrap-server kafka:29092 && \'"
+                             --bootstrap-server kafka:29092'"
     init: true
+
+#  stats-server:
+#    build: stats/stats-server
+#    container_name: stats-server
+#    environment:
+#      - SPRING_DATASOURCE_URL=jdbc:postgresql://stats-db:5432/stats
+#      - SPRING_DATASOURCE_USERNAME=stat
+#      - SPRING_DATASOURCE_PASSWORD=stat
+#      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+
+#  comment-service:
+#    build: core/comment-service
+#    container_name: comment-service
+#    environment:
+#      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/comment_db
+#      - SPRING_DATASOURCE_USERNAME=comment_user
+#      - SPRING_DATASOURCE_PASSWORD=password1
+#      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+
+#  event-service:
+#    build: core/event-service
+#    container_name: event-service
+#    environment:
+#      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/event_db
+#      - SPRING_DATASOURCE_USERNAME=event_user
+#      - SPRING_DATASOURCE_PASSWORD=password2
+#      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+
+#  request-service:
+#    build: core/request-service
+#    container_name: request-service
+#    environment:
+#      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/request_db
+#      - SPRING_DATASOURCE_USERNAME=request_user
+#      - SPRING_DATASOURCE_PASSWORD=password3
+#      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+
+#  user-service:
+#    build: core/user-service
+#    container_name: user-service
+#    environment:
+#      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/user_db
+#      - SPRING_DATASOURCE_USERNAME=user_user
+#      - SPRING_DATASOURCE_PASSWORD=password4
+#      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+
+#  config-server:
+#    build: infra/config-server
+#    container_name: config-server
+#    environment:
+#      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+
+#  discovery-server:
+#    build: infra/discovery-server
+#    container_name: discovery-server
+#    ports:
+#      - "8761:8761"
+#    environment:
+#      - EUREKA_INSTANCE_HOSTNAME=discovery-server
+
+#  gateway-server:
+#    build: infra/gateway-server
+#    container_name: gateway-server
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka

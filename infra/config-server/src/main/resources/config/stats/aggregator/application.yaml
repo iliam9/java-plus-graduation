@@ -1,5 +1,11 @@
-kafka.constants:
-  url: "localhost:9092"
-  action: "stats.user-actions.v1"
-  similarity: "stats.events-similarity.v1"
-logging.level.ru.practicum: "ERROR"
+server:
+  port: 0
+
+user:
+  topic: stats.user-actions.v1
+
+event:
+  topic: stats.events-similarity.v1
+
+kafka:
+  url: ${KAFKA_URL:http://localhost:9092}
