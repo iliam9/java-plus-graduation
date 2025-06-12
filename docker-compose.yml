@@ -1,75 +1,14 @@
 services:
+  stats-server:
+    ports:
+      - "9090:9090"
+
   stats-db:
     image: postgres:16.1
-    container_name: stats-db
+
+  ewm-service:
     ports:
-      - "6541:5432"
-    environment:
-      - POSTGRES_DB=statsdb
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=12345
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-      timeout: 5s
-      interval: 5s
-      retries: 10
+      - "8080:8080"
 
   ewm-db:
     image: postgres:16.1
-    container_name: main-db
-    ports:
-      - "6542:5432"
-    environment:
-      - POSTGRES_DB=maindb
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=12345
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-      timeout: 5s
-      interval: 5s
-      retries: 10
-
-  user-db:
-      image: postgres:16.1
-      container_name: user-db
-      ports:
-          - "6432:5432"
-      environment:
-          - POSTGRES_DB=userdb
-          - POSTGRES_USER=postgres
-          - POSTGRES_PASSWORD=12345
-      healthcheck:
-          test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-          timeout: 5s
-          interval: 5s
-          retries: 10
-
-  request-db:
-      image: postgres:16.1
-      container_name: request-db
-      ports:
-          - "6433:5432"
-      environment:
-          - POSTGRES_DB=requestdb
-          - POSTGRES_USER=postgres
-          - POSTGRES_PASSWORD=12345
-      healthcheck:
-          test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-          timeout: 5s
-          interval: 5s
-          retries: 10
-
-  event-db:
-      image: postgres:16.1
-      container_name: event-db
-      ports:
-          - "6434:5432"
-      environment:
-          - POSTGRES_DB=eventdb
-          - POSTGRES_USER=postgres
-          - POSTGRES_PASSWORD=12345
-      healthcheck:
-          test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-          timeout: 5s
-          interval: 5s
-          retries: 10
