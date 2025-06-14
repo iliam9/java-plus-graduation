@@ -25,6 +25,7 @@ import ru.practicum.application.event.repository.EventRepository;
 import ru.practicum.application.user.client.UserClient;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,23 +43,39 @@ public class CompilationServiceImpl implements CompilationService {
     @Transactional
     public ResponseCompilationDto addCompilation(NewCompilationDto dto) throws NotFoundException {
         Compilation compilation = CompilationMapper.mapToCompilation(dto);
-        if (compilation.getPinned() == null) {
-            compilation.setPinned(false);
-        }
+        compilation.setPinned(Optional.ofNullable(compilation.getPinned()).orElse(false));
+
         List<Event> events = getEventsFromDto(dto);
         compilation.setEvents(events);
-        ResponseCompilationDto responseCompilationDto = CompilationMapper.mapToResponseCompilation(
-                compilationRepository.save(compilation)
-        );
-        List<EventShortDto> eventDtos = new ArrayList<>();
-        for (Event event : compilation.getEvents()) {
-            eventDtos.add(EventMapper.mapEventToShortDto(event,
-                    categoryClient.getCategoryById(event.getCategory()),
-                    userClient.getById(event.getInitiator())));
-        }
-        responseCompilationDto.setEvents(eventDtos);
+        Compilation savedCompilation = compilationRepository.save(compilation);
 
-        return responseCompilationDto;
+        Set<Long> categoryIds = events.stream()
+                .map(Event::getCategory)
+                .collect(Collectors.toSet());
+        Set<Long> userIds = events.stream()
+                .map(Event::getInitiator)
+                .collect(Collectors.toSet());
+
+        Map<Long, CategoryDto> categories = categoryIds.isEmpty() ?
+                Collections.emptyMap() :
+                categoryClient.getCategoriesByIds(categoryIds).stream()
+                        .collect(Collectors.toMap(CategoryDto::getId, Function.identity()));
+
+        Map<Long, UserDto> users = userIds.isEmpty() ?
+                Collections.emptyMap() :
+                userClient.getUsersList(new ArrayList<>(userIds), 0, userIds.size()).stream()
+                        .collect(Collectors.toMap(UserDto::getId, Function.identity()));
+
+        ResponseCompilationDto response = CompilationMapper.mapToResponseCompilation(savedCompilation);
+        response.setEvents(events.stream()
+                .map(event -> EventMapper.mapEventToShortDto(
+                        event,
+                        categories.get(event.getCategory()),
+                        users.get(event.getInitiator())
+                ))
+                .collect(Collectors.toList()));
+
+        return response;
     }
 
     @Override
