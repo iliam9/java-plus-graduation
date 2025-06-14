@@ -26,8 +26,8 @@ public interface EventInterface {
             @RequestParam(required = false) Boolean paid,
             @RequestParam(required = false) String rangeStart,
             @RequestParam(required = false) String rangeEnd,
-            @RequestParam(required = false, defaultValue = "false") Boolean available,
-            @RequestParam(required = false, defaultValue = "EVENT_DATE") String sort,
+            @RequestParam(defaultValue = "false") Boolean available,
+            @RequestParam(defaultValue = "EVENT_DATE") String sort,
             @PositiveOrZero @RequestParam(defaultValue = "0") Integer from,
             @Positive @RequestParam(defaultValue = "10") Integer count,
             HttpServletRequest request

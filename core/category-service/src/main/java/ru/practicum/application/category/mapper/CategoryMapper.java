@@ -6,11 +6,11 @@ import ru.practicum.application.category.model.Category;
 
 @UtilityClass
 public class CategoryMapper {
-    public static Category mapCategoryDto(CategoryDto categoryDto) {
+    public Category mapCategoryDto(CategoryDto categoryDto) {
         return new Category(null, categoryDto.getName());
     }
 
-    public static CategoryDto mapCategory(Category category) {
+    public CategoryDto mapCategory(Category category) {
         return new CategoryDto(category.getId(), category.getName());
     }
 

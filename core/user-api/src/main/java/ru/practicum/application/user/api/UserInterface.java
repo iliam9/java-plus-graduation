@@ -11,8 +11,8 @@ import java.util.List;
 public interface UserInterface {
     @GetMapping("/admin/users")
     List<UserDto> getUsersList(@RequestParam(required = false) List<Long> ids,
-                               @RequestParam(required = false, defaultValue = "0") Integer from,
-                               @RequestParam(required = false, defaultValue = "10") Integer size);
+                               @RequestParam(defaultValue = "0") Integer from,
+                               @RequestParam(defaultValue = "10") Integer size);
 
     @PostMapping("/admin/users")
     @ResponseStatus(HttpStatus.CREATED)

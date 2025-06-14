@@ -10,8 +10,8 @@ import java.util.List;
 
 public interface PublicCategoryInterface {
     @GetMapping("/categories")
-    List<CategoryDto> getAllCategories(@RequestParam(required = false, defaultValue = "0") Integer from,
-                                       @RequestParam(required = false, defaultValue = "10") Integer size);
+    List<CategoryDto> getAllCategories(@RequestParam(defaultValue = "0") Integer from,
+                                       @RequestParam(defaultValue = "10") Integer size);
 
     @GetMapping("/categories/{catId}")
     CategoryDto getCategoryById(@PathVariable Long catId) throws NotFoundException;

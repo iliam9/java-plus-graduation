@@ -18,7 +18,7 @@ import static ru.practicum.application.api.util.JsonFormatPattern.JSON_FORMAT_PA
 
 @UtilityClass
 public class EventMapper {
-    public static EventFullDto mapEventToFullDto(Event event, Long confirmed, CategoryDto category, UserDto user) {
+    public EventFullDto mapEventToFullDto(Event event, Long confirmed, CategoryDto category, UserDto user) {
         EventFullDto eventFullDto = new EventFullDto();
         eventFullDto.setId(event.getId());
         eventFullDto.setAnnotation(event.getAnnotation());
@@ -38,7 +38,7 @@ public class EventMapper {
         return eventFullDto;
     }
 
-    public static EventShortDto mapEventToShortDto(Event event, CategoryDto category, UserDto user) {
+    public EventShortDto mapEventToShortDto(Event event, CategoryDto category, UserDto user) {
         EventShortDto eventShortDto = new EventShortDto();
         eventShortDto.setAnnotation(event.getAnnotation());
         eventShortDto.setTitle(event.getTitle());
@@ -50,7 +50,7 @@ public class EventMapper {
         return eventShortDto;
     }
 
-    public static Event mapNewEventDtoToEvent(NewEventDto newEvent, CategoryDto category) {
+    public Event mapNewEventDtoToEvent(NewEventDto newEvent, CategoryDto category) {
         Event event = new Event();
         event.setAnnotation(newEvent.getAnnotation());
         event.setCategory(category.getId());
@@ -68,7 +68,7 @@ public class EventMapper {
         return new LocationDto(location.getId(), location.getLat(), location.getLon());
     }
 
-    public static Location mapDtoToLocation(LocationDto locationDto) {
+    public Location mapDtoToLocation(LocationDto locationDto) {
         return new Location(locationDto.getId(), locationDto.getLat(), locationDto.getLon());
     }
 
