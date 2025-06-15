@@ -33,6 +33,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static ru.practicum.application.api.util.JsonFormatPattern.JSON_FORMAT_PATTERN_FOR_TIME;
@@ -51,93 +52,122 @@ public class AdminEventServiceImpl implements AdminEventService {
     final AnalyzerClient analyzerClient;
 
     @Override
-    public List<EventFullDto> getEvents(List<Long> users, List<String> states, List<Long> categories, LocalDateTime rangeStart, LocalDateTime rangeEnd, Integer from, Integer size) throws ValidationException {
+    public List<EventFullDto> getEvents(List<Long> users, List<String> states,
+                                        List<Long> categories, LocalDateTime rangeStart,
+                                        LocalDateTime rangeEnd, Integer from, Integer size)
+            throws ValidationException {
 
-        List<EventFullDto> eventDtos = null;
-        List<EventState> eventStateList = null;
+        validateDateRange(rangeStart, rangeEnd);
+        List<EventState> eventStates = parseEventStates(states);
 
-        if (rangeStart != null && rangeEnd != null) {
-            if (rangeStart.isAfter(rangeEnd)) {
-                throw new ValidationException("Время начала поиска позже времени конца поиска");
-            }
-        }
+        Map<Long, Event> eventsMap = findEvents(users, eventStates, categories,
+                rangeStart, rangeEnd, from, size);
 
-        if ((states == null) || (states.isEmpty())) {
-            eventStateList = Arrays.stream(EventState.values()).collect(Collectors.toList());
-        } else {
-            eventStateList = states.stream().map(EventState::valueOf).collect(Collectors.toList());
-        }
-
-        if (users == null && categories == null) {
-            Map<Long, Event> allEventsWithDates = new ArrayList<>(eventRepository.findAll(PageRequest.of(from / size, size)).getContent())
-                    .stream().collect(Collectors.toMap(Event::getId, e -> e));
-            List<EventRequestDto> requestsByEventIds = requestClient.findByEventIds(allEventsWithDates.values().stream()
-                    .mapToLong(Event::getId).boxed().collect(Collectors.toList()));
-
-            List<Long> usersIds = allEventsWithDates.values().stream().map(Event::getInitiator).toList();
-            Set<Long> categoriesIds = allEventsWithDates.values()
-                    .stream().map(Event::getCategory).collect(Collectors.toSet());
-            Map<Long, UserDto> usersByRequests = userClient.getUsersList(usersIds, 0, Math.max(allEventsWithDates.size(), 1))
-                    .stream()
-                    .collect(Collectors.toMap(UserDto::getId, userDto -> userDto));
-            Map<Long, CategoryDto> categoriesByRequests = categoryClient.getCategoriesByIds(categoriesIds).stream()
-                    .collect(Collectors.toMap(CategoryDto::getId, categoryDto -> categoryDto));
-
-            eventDtos = allEventsWithDates.values().stream()
-                    .map(e -> EventMapper.mapEventToFullDto(e,
-                            requestsByEventIds.stream()
-                                    .filter(r -> r.getId().equals(e.getId()))
-                                    .count(),
-                            categoriesByRequests.get(e.getCategory()),
-                            usersByRequests.get(e.getInitiator())))
-                    .toList();
-        } else {
-            Map<Long, Event> allEventsWithDates = eventRepository.findAllEventsWithDates(users,
-                            eventStateList, categories, rangeStart, rangeEnd,
-                            PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "e.eventDate")))
-                    .stream().collect(Collectors.toMap(Event::getId, e -> e));
-
-            List<EventRequestDto> requestsByEventIds = requestClient.findByEventIds(allEventsWithDates.values().stream()
-                    .mapToLong(Event::getId).boxed().collect(Collectors.toList()));
-
-            List<Long> usersIds = allEventsWithDates.values().stream().map(Event::getInitiator).toList();
-            Set<Long> categoriesIds = allEventsWithDates.values()
-                    .stream().map(Event::getCategory).collect(Collectors.toSet());
-            Map<Long, UserDto> usersByRequests = userClient.getUsersList(usersIds, 0, Math.max(allEventsWithDates.size(), 1))
-                    .stream()
-                    .collect(Collectors.toMap(UserDto::getId, userDto -> userDto));
-            Map<Long, CategoryDto> categoriesByRequests = categoryClient.getCategoriesByIds(categoriesIds).stream()
-                    .collect(Collectors.toMap(CategoryDto::getId, categoryDto -> categoryDto));
-
-            eventDtos = allEventsWithDates.values().stream()
-                    .map(e -> EventMapper.mapEventToFullDto(e,
-                            requestsByEventIds.stream()
-                                    .filter(r -> r.getEvent().equals(e.getId()))
-                                    .count(),
-                            categoriesByRequests.get(e.getCategory()),
-                            usersByRequests.get(e.getInitiator())))
-                    .toList();
-        }
-
-        if (!eventDtos.isEmpty()) {
-            ArrayList<Long> longs = eventDtos.stream()
-                    .map(EventFullDto::getId).collect(Collectors.toCollection(ArrayList::new));
-            List<EventRequestDto> requests = requestClient.getByEventAndStatus(longs, "CONFIRMED");
-            Map<Long, Double> eventRating = analyzerClient.getInteractionsCount(getInteractionsRequest(longs))
-                    .stream().collect(Collectors.toMap(RecommendedEventProto::getEventId, RecommendedEventProto::getScore));
-
-            return eventDtos.stream()
-                    .peek(dto -> dto.setConfirmedRequests(
-                            requests.stream()
-                                    .filter((request -> request.getEvent().equals(dto.getId())))
-                                    .count()
-                    ))
-                    .peek(dto -> eventRating.getOrDefault(dto.getId(), 0.0))
-                    .collect(Collectors.toList());
-        } else {
+        if (eventsMap.isEmpty()) {
             return Collections.emptyList();
         }
+
+        return buildEventFullDtos(eventsMap);
     }
+
+    private void validateDateRange(LocalDateTime rangeStart, LocalDateTime rangeEnd)
+            throws ValidationException {
+        if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
+            throw new ValidationException("Время начала поиска позже времени конца поиска");
+        }
+    }
+
+    private List<EventState> parseEventStates(List<String> states) {
+        return (states == null || states.isEmpty())
+                ? Arrays.asList(EventState.values())
+                : states.stream().map(EventState::valueOf).collect(Collectors.toList());
+    }
+
+    private Map<Long, Event> findEvents(List<Long> users, List<EventState> states,
+                                        List<Long> categories, LocalDateTime rangeStart,
+                                        LocalDateTime rangeEnd, Integer from, Integer size) {
+
+        if (users == null && categories == null) {
+            return eventRepository.findAll(PageRequest.of(from / size, size))
+                    .getContent().stream()
+                    .collect(Collectors.toMap(Event::getId, Function.identity()));
+        }
+
+        return eventRepository.findAllEventsWithDates(
+                users, states, categories, rangeStart, rangeEnd,
+                PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "e.eventDate"))
+        ).stream().collect(Collectors.toMap(Event::getId, Function.identity()));
+    }
+
+    private List<EventFullDto> buildEventFullDtos(Map<Long, Event> eventsMap) {
+        List<Long> eventIds = new ArrayList<>(eventsMap.keySet());
+        List<Long> userIds = extractUserIds(eventsMap);
+        Set<Long> categoryIds = extractCategoryIds(eventsMap);
+
+        Map<Long, UserDto> users = fetchUsers(userIds);
+        Map<Long, CategoryDto> categories = fetchCategories(categoryIds);
+        Map<Long, Long> confirmedRequests = countConfirmedRequests(eventIds);
+        Map<Long, Double> eventRatings = fetchEventRatings(eventIds);
+
+        return eventsMap.values().stream()
+                .map(event -> buildEventFullDto(
+                        event,
+                        users.get(event.getInitiator()),
+                        categories.get(event.getCategory()),
+                        confirmedRequests.getOrDefault(event.getId(), 0L),
+                        eventRatings.getOrDefault(event.getId(), 0.0)
+                ))
+                .collect(Collectors.toList());
+    }
+
+    private List<Long> extractUserIds(Map<Long, Event> eventsMap) {
+        return eventsMap.values().stream()
+                .map(Event::getInitiator)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private Set<Long> extractCategoryIds(Map<Long, Event> eventsMap) {
+        return eventsMap.values().stream()
+                .map(Event::getCategory)
+                .collect(Collectors.toSet());
+    }
+
+    private Map<Long, UserDto> fetchUsers(List<Long> userIds) {
+        return userClient.getUsersList(userIds, 0, userIds.size()).stream()
+                .collect(Collectors.toMap(UserDto::getId, Function.identity()));
+    }
+
+    private Map<Long, CategoryDto> fetchCategories(Set<Long> categoryIds) {
+        return categoryClient.getCategoriesByIds(categoryIds).stream()
+                .collect(Collectors.toMap(CategoryDto::getId, Function.identity()));
+    }
+
+    private Map<Long, Long> countConfirmedRequests(List<Long> eventIds) {
+        return requestClient.getByEventAndStatus(eventIds, "CONFIRMED").stream()
+                .collect(Collectors.groupingBy(
+                        EventRequestDto::getEvent,
+                        Collectors.counting()
+                ));
+    }
+
+    private Map<Long, Double> fetchEventRatings(List<Long> eventIds) {
+        return analyzerClient.getInteractionsCount(getInteractionsRequest(eventIds)).stream()
+                .collect(Collectors.toMap(
+                        RecommendedEventProto::getEventId,
+                        RecommendedEventProto::getScore
+                ));
+    }
+
+    private EventFullDto buildEventFullDto(Event event, UserDto user,
+                                           CategoryDto category, Long confirmedRequests,
+                                           Double rating) {
+        EventFullDto dto = EventMapper.mapEventToFullDto(
+                event, confirmedRequests, category, user);
+        dto.setRating(rating);
+        return dto;
+    }
+
 
     @Override
     public EventFullDto updateEvent(Long eventId, UpdateEventAdminRequest updateRequest) throws ConflictException, ValidationException, NotFoundException, WrongDataException {
