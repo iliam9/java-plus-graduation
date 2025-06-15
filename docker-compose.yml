@@ -1,75 +1,87 @@
 services:
+  stats-server:
+    build: stats/stats-server
+    image: stats-server
+    container_name: stats-server
+    ports:
+      - "9090:9090"
+    depends_on:
+      - stats-db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://explore-postgres-stats:5432/explore-stats
+      - SPRING_DATASOURCE_USERNAME=explore-stats
+      - SPRING_DATASOURCE_PASSWORD=explore-stats
+
   stats-db:
     image: postgres:16.1
-    container_name: stats-db
+    container_name: explore-postgres-stats
     ports:
-      - "6541:5432"
+      - "6432:5432"
     environment:
-      - POSTGRES_DB=statsdb
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=12345
+      - POSTGRES_PASSWORD=explore-stats
+      - POSTGRES_USER=explore-stats
+      - POSTGRES_DB=explore-stats
     healthcheck:
       test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
       timeout: 5s
       interval: 5s
       retries: 10
 
-  ewm-db:
+  ewm-service:
+    build: main-server
+    image: main-server
+    container_name: ewm-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - stats-db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://explore-postgres-main:5432/explore-main
+      - SPRING_DATASOURCE_USERNAME=explore-main
+      - SPRING_DATASOURCE_PASSWORD=explore-main
+
+  main-db:
     image: postgres:16.1
-    container_name: main-db
+    container_name: explore-postgres-main
     ports:
-      - "6542:5432"
+      - "6433:5432"
     environment:
-      - POSTGRES_DB=maindb
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=12345
+      - POSTGRES_PASSWORD=explore-main
+      - POSTGRES_USER=explore-main
+      - POSTGRES_DB=explore-main
     healthcheck:
       test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
       timeout: 5s
       interval: 5s
       retries: 10
+  kafka:
+    image: confluentinc/confluent-local:7.4.3
+    hostname: kafka
+    container_name: kafka
+    ports:
+      - "9092:9092" # for client connections
+      - "9101:9101" # JMX
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      CLUSTER_ID: 'K0EA9p0yEe6MkAAAAkKsEg'
 
-  user-db:
-      image: postgres:16.1
-      container_name: user-db
-      ports:
-          - "6432:5432"
-      environment:
-          - POSTGRES_DB=userdb
-          - POSTGRES_USER=postgres
-          - POSTGRES_PASSWORD=12345
-      healthcheck:
-          test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-          timeout: 5s
-          interval: 5s
-          retries: 10
-
-  request-db:
-      image: postgres:16.1
-      container_name: request-db
-      ports:
-          - "6433:5432"
-      environment:
-          - POSTGRES_DB=requestdb
-          - POSTGRES_USER=postgres
-          - POSTGRES_PASSWORD=12345
-      healthcheck:
-          test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-          timeout: 5s
-          interval: 5s
-          retries: 10
-
-  event-db:
-      image: postgres:16.1
-      container_name: event-db
-      ports:
-          - "6434:5432"
-      environment:
-          - POSTGRES_DB=eventdb
-          - POSTGRES_USER=postgres
-          - POSTGRES_PASSWORD=12345
-      healthcheck:
-          test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-          timeout: 5s
-          interval: 5s
-          retries: 10
+  kafka-init-topics:
+    image: confluentinc/confluent-local:7.4.3
+    container_name: kafka-init-topics
+    depends_on:
+      - kafka
+    command: "bash -c \
+                'kafka-topics --create --topic stats.user-actions.v1 \
+                             --partitions 1 --replication-factor 1 --if-not-exists \
+                             --bootstrap-server kafka:29092 && \
+                kafka-topics --create --topic stats.events-similarity.v1 \
+                             --partitions 1 --replication-factor 1 --if-not-exists \
+                             --bootstrap-server kafka:29092 && \'"
+    init: true
